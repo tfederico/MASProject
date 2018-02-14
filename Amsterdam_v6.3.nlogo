@@ -54,19 +54,19 @@ end
 
 to calculate-average-travelling-time
   let sum_temp 0
-  let list_temp filter [(item 8 ? != -1) or (item 7 ? != -1) or (item 6 ?)] passengers
-  foreach list_temp [
+  let list_temp filter [ ?1 -> (item 8 ?1 != -1) or (item 7 ?1 != -1) or (item 6 ?1) ] passengers
+  foreach list_temp [ ?1 ->
     ifelse days < 2
     [
-      set sum_temp sum_temp + item 5 ?
+      set sum_temp sum_temp + item 5 ?1
     ]
     [
-      ifelse not item 6 ?
+      ifelse not item 6 ?1
       [
-        set sum_temp (sum_temp + item 5 ? + 180)
+        set sum_temp (sum_temp + item 5 ?1 + 180)
       ]
       [
-        set sum_temp (sum_temp + item 5 ?)
+        set sum_temp (sum_temp + item 5 ?1)
       ]
     ]
   ]
@@ -90,35 +90,35 @@ to update-passengers-statistics
   let total_travelling_time 0
   set amount_passengers_waiting 0
   let pos 0
-  foreach passengers [
-    if (item 8 ? != -1) or (item 7 ? != -1) [
-      let arrived? item 6 ?
-      let ride_duration item 5 ?
-      let waiting_time item 4 ?
-      let b_s item 8 ?
+  foreach passengers [ ?1 ->
+    if (item 8 ?1 != -1) or (item 7 ?1 != -1) [
+      let arrived? item 6 ?1
+      let ride_duration item 5 ?1
+      let waiting_time item 4 ?1
+      let b_s item 8 ?1
       if not arrived? [
         set ride_duration ride_duration + 1
         if (b_s != -1) [
           set waiting_time waiting_time + 1
         ]
       ]
-      set ? replace-item 5 ? ride_duration
-      set ? replace-item 4 ? waiting_time
-      set passengers replace-item pos passengers ?
+      set ?1 replace-item 5 ?1 ride_duration
+      set ?1 replace-item 4 ?1 waiting_time
+      set passengers replace-item pos passengers ?1
     ]
-    set total_waiting_time total_waiting_time + item 4 ?
-    set total_travelling_time total_travelling_time + item 5 ?
-    if (not item 6 ?) and (item 8 ? != -1) and (item 7 ? = -1) [
+    set total_waiting_time total_waiting_time + item 4 ?1
+    set total_travelling_time total_travelling_time + item 5 ?1
+    if (not item 6 ?1) and (item 8 ?1 != -1) and (item 7 ?1 = -1) [
       set amount_passengers_waiting amount_passengers_waiting + 1
     ]
     set pos pos + 1
   ]
-  let n filter [(item 8 ? = -1) and (item 7 ? = -1) and item 6 ?] passengers
-  let n2 filter [(item 8 ? != -1) or (item 7 ? != -1) and not item 6 ?] passengers
+  let n filter [ ?1 -> (item 8 ?1 = -1) and (item 7 ?1 = -1) and item 6 ?1 ] passengers
+  let n2 filter [ ?1 -> (item 8 ?1 != -1) or (item 7 ?1 != -1) and not item 6 ?1 ] passengers
 
   let sum_temp 0
-  foreach n [
-    set sum_temp sum_temp + item 5 ?
+  foreach n [ ?1 ->
+    set sum_temp sum_temp + item 5 ?1
   ]
 
   if (length n > 0) [
@@ -127,8 +127,8 @@ to update-passengers-statistics
   ]
 
   let sum_temp2 0
-  foreach n2 [
-    set sum_temp2 sum_temp2 + item 5 ?
+  foreach n2 [ ?1 ->
+    set sum_temp2 sum_temp2 + item 5 ?1
   ]
   if (length n2 > 0) [
     set average_travelling_time_remaining (sum_temp2 / length n2)
@@ -162,10 +162,10 @@ to create-bus-stops
   let xs [27 11 31 22 21 11 25 11 26 25 17 4 31 17 19 35 6 10 38 14 23 24 25 15]
   let ys [7 4 30 21 18 18 30 9 24 18 14 12 13 11 3 10 26 13 11 1 16 13 11 4]
 
-  foreach amsterdam_bus_stops_names [
+  foreach amsterdam_bus_stops_names [ ?1 ->
     create-bus_stops 1 [
-      let i position ? amsterdam_bus_stops_names
-      set name ?
+      let i position ?1 amsterdam_bus_stops_names
+      set name ?1
       set xcor item i xs
       set ycor item i ys
       set size 2
@@ -181,11 +181,11 @@ end
 to build-connections
   let connections [[15 14 22] [19 23 11] [8] [9 20 4 16] [5 10] [10 17 16] [8] [13 1 17] [9] [20] [17 13 21] [17 16] [20 22 15] [22 23] [23] [18] [] [] [] [23] [21] [22] [] []]
   let i 0
-  foreach connections [
-    if length ? > 0 [
-      foreach ?1 [
+  foreach connections [ ?1 ->
+    if length ?1 > 0 [
+      foreach ?1 [ ??1 ->
         ask bus_stop i [
-          create-route-with bus_stop ?1
+          create-route-with bus_stop ??1
         ]
       ]
     ]
@@ -285,11 +285,11 @@ end
 to get-daily-ridership-schedule
   let file_name (word "passengers-location_day" days ".csv")
   let daily_ridership_schedule parse-file-information file_name
-  foreach daily_ridership_schedule [
-    let from_bus_stop item 0 ?
-    let to_bus_stop item 1 ?
-    let count_passengers item 2 ?
-    let check_in_time item 3 ?
+  foreach daily_ridership_schedule [ ?1 ->
+    let from_bus_stop item 0 ?1
+    let to_bus_stop item 1 ?1
+    let count_passengers item 2 ?1
+    let check_in_time item 3 ?1
     create-passengers count_passengers check_in_time from_bus_stop to_bus_stop
   ]
 end
@@ -347,10 +347,10 @@ to-report parse-file-information [file_name]
       set line (word "[" line "]")
       let current_schedule_list read-from-string line
       let i 0
-      foreach current_schedule_list [
-        if ? != 0 [
+      foreach current_schedule_list [ ?1 ->
+        if ?1 != 0 [
           let to_bus_stop i
-          let current_schedule_information (list from_bus_stop_index to_bus_stop ? check_in_time)
+          let current_schedule_information (list from_bus_stop_index to_bus_stop ?1 check_in_time)
           set information lput current_schedule_information information
         ]
         set i (i + 1)
@@ -365,15 +365,15 @@ end
 to update-bus-stops
   let pos 0
 
-  foreach passengers [
-    let scheduled_time (word item  1 ?)
-    if (scheduled_time = current_time) and (item 8 ? = -1) and (item 7 ? = -1) [
-      let from_bus_stop item 2 ?
-      set ? replace-item 8 ? from_bus_stop
-      set passengers replace-item pos passengers ?
+  foreach passengers [ ?1 ->
+    let scheduled_time (word item  1 ?1)
+    if (scheduled_time = current_time) and (item 8 ?1 = -1) and (item 7 ?1 = -1) [
+      let from_bus_stop item 2 ?1
+      set ?1 replace-item 8 ?1 from_bus_stop
+      set passengers replace-item pos passengers ?1
       ask bus_stop from_bus_stop [
-        let d item 3 ?
-        let i item 0 ?
+        let d item 3 ?1
+        let i item 0 ?1
         let p (list i d)
         let posi position p passengers_waiting
         if (is-boolean? posi) and (not posi)[
@@ -483,8 +483,8 @@ end
 to add-buses
   if is-number? leasing_list = true [stop]
 
-  foreach leasing_list [
-    let bt ?
+  foreach leasing_list [ ?1 ->
+    let bt ?1
     create-buses 1 [
       let cost 0
       set bus_type bt
@@ -719,8 +719,8 @@ to drop-off-passenger [p_id]
       ]
     ]
     ask bus_stop bs_id [
-      let p filter [item 0 ? = p_id] bps
-      let p2 filter [item 0 ? = p_id] passengers_waiting
+      let p filter [ ?1 -> item 0 ?1 = p_id ] bps
+      let p2 filter [ ?1 -> item 0 ?1 = p_id ] passengers_waiting
       ifelse length p > 0 and (item 8 passenger = -1) and (item 7 passenger != -1) and (item 7 passenger = b_id) and (length p2 = 0)
       [
         set p item 0 p
@@ -754,11 +754,11 @@ to-report get-passengers-at-stop [b_s_id]
      show (word "WARNING: get-passengers-waiting-at-stop:" " there is not bus-stop " b_s_id)]
   [
     ask bus_stop b_s_id [
-      foreach passengers_waiting [
-        let i item 0 ?
+      foreach passengers_waiting [ ?1 ->
+        let i item 0 ?1
         let p item i passengers
         if item 6 p = false [
-          set information lput ? information
+          set information lput ?1 information
         ]
       ]
     ]
@@ -770,8 +770,8 @@ end
 GRAPHICS-WINDOW
 21
 12
-1097
-849
+1095
+827
 -1
 -1
 26.0
@@ -1386,9 +1386,8 @@ false
 0
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
-
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1402,7 +1401,6 @@ default
 link direction
 true
 0
-
 @#$#@#$#@
 0
 @#$#@#$#@
