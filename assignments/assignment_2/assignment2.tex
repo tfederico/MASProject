@@ -19,16 +19,19 @@
 \maketitle
 
 \section{Overview}
-
-Which is the problem we are tackling? How is it structured and which are the main goals? How are we planning to solve it?
+For week 2 we implemented the first version of a multi-agent transportation system. In this version transportation is not yet dependent on transportation costs or waiting time. Each agent picks and drops of passengers following the same fixed route continuously. The amount of people waiting is taken into consideration, by adding buses based on this number. 
 
 \section{BDI Framework}
 
-Why do we think this is the proper framework? Which are our beliefs/desideres/intentions?
+We chose to work following the BDI framework. This framework facilitates flexibility in generating actions, thanks to the continuous updating of beliefs, intentions and desires. Agents can perform a variety of actions based on their knowledge of the environment. This knowledge will be contained in their belief. In our first version, belief consists of a fixed transportation schedule. This transportation schedule is a sequence of 24 connected bus stops. The desire of the agents is to transport passengers. The intentions consist of different action-combinations, performed to fullfill the desire. In this version, the intentions are to pick and drop off passengers at a bus stop, to call for more buses when needed, and to move to the next busstop.  
 
 \section{Implementation}
 
-What have we done to implement our solutions? Which problems did we solve? Which are the unsolved ones?
--
+Transportation is organised by implementing a fixed schedule, along which the buses move. This schedule combines the 24 stops into one cyclic path, where the buses drive along each busstop each cycle. Using this schedule, each waiting passenger will arrive at it's destination. But a fixed route does not efficiently deal with waiting time, costs or the amount of people waiting. In future versions, the route should be made dependent on these variables. 
+
+We reduced the amount of people waiting and the waiting time somewhat by adding buses. When the total capacity of buses is lower than the total amount of people waiting, new buses are added. A preference for adding buses with a large capacity is implemented, unless this difference is smaller than the capacity of a smaller bus. The ability to add buses is allocated solely to the inital bus in the scenario, with bus id 24. If not a specific bus would be assigned to this task, than each bus would check for capacity shortage at each tick. A capacity shortage would result in too many buses added. 
+
+Unfortunately bus 24 is not aware of the amount of occupied spots in each bus and can therefore only estimate how many buses are needed. To solve this, a communication system between the buses needs to be implemented. The costs of the buses are not taken into consideration when adding buses. Also, in the current system rush hours may lead to excessive bus adding and costly empty buses later on. The current solution is thus not cost effective yet.
+
 
 \end{document}
