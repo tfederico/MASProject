@@ -17,6 +17,13 @@ buses-own [
   beliefs
   
   capacity
+  roles ; "coordinator" "scout" "simple"
+  running ; true or false, whether the bus has to stop or not
+  last-created-bus ; id of the last created bus. Only the coordinator updates this value
+  last-inbox-check ; tick in which the agent checked for the last time the inbox 
+  last-wake-sent ; tick in which the coordinator sent the last wake up message
+  tot-capacity ; total capacity of the bus fleet. Only the coordinator keeps track of this value, the other receive this value as a message  
+  last-promote-all ; last global promotion done by the coordinator
 ]
  
 globals [graph]
@@ -28,7 +35,7 @@ to init-buses
   init-desire
   init-intentions
   init-beliefs
-  init-capacity  
+  init-capacity
 end
 
 to init-desire
@@ -40,7 +47,12 @@ to init-intentions
 end
 
 to-report get-schedule
-  report [3 9 8 6 8 2 8 9 3 20 12 15 18 15 12 20 21 22 0 14 23 19 1 7 13 10 17 11 16 5 4 3]
+  let schedule [9 8 6 8 2 8 9 3 20 12 15 18 15 12 20 21 22 0 14 23 19 1 7 13 10 17 11 16 5 4] 
+  if bus_id mod 2 != 0 [
+    set schedule (reverse schedule)
+  ] 
+  set schedule fput 3 schedule
+  report schedule
 end
 
 to init-beliefs
@@ -68,37 +80,111 @@ to-report get-available-spots
   ]
 end
 
+to wrap-add-bus [bustype] 
+  add-bus bustype
+  set last-created-bus (last-created-bus + 1)
+  let new-capacity bus_type1_capacity
+  if bustype = 2 [
+    set new-capacity bus_type2_capacity  
+  ]
+  if bustype = 3 [
+    set new-capacity bus_type3_capacity 
+  ]
+  set tot-capacity (tot-capacity + new-capacity)
+end
+
 to execute-actions
   ; Add decision making strategies for your agents here.
   ; You are allowed to use the global variable 'ticks'.
+  if roles = 0[
+    ifelse bus_id = 24 [ 
+      set roles ["coordinator" "scout"]
+      set last-created-bus 24
+      set tot-capacity bus_type1_capacity
+    ][ 
+      ifelse bus_id = 25 [ 
+        set roles ["scout"] 
+      ] [
+        set roles ["simple"]  
+      ]
+    ]
+    set running true
+  ]
+  if ticks = 2 and member? "coordinator" roles [
+   wrap-add-bus 1 
+  ]
   update-beliefs
   update-desire
   update-intentions
   
   let intention (item 0 intentions)
-  show intention
+  
+  if intention = "check-inbox" [
+    let new-messages (filter [m -> ((item 0 m) >= last-inbox-check and (item 0 m) != ticks) ] inbox)
+    set last-inbox-check ticks
+    foreach new-messages [ m ->
+      if (item 2 m) = "scout" [
+        if not member? "scout" roles [ set roles lput "scout" roles ]
+        if member? "simple" roles [ set roles remove "simple" roles ]
+      ]
+      if (item 2 m) = "simple" [
+        set roles [ "simple" ] 
+      ]
+      
+    ] 
+    set intentions but-first intentions
+    set intention (item 0 intentions)  
+  ]
+  
+  if intention = "check-restart" [
+    let num-passengers amount_passengers_waiting
+    let c-global-passengers num-passengers > 2000
+    let c-current-stop ((length (get-passengers-at-stop current_stop)) != 0 )
+    let c-already-running running  
+    let restart-condition (c-global-passengers or c-current-stop or c-already-running) 
+    if restart-condition [
+      wrap-running
+      set intentions but-first intentions
+      set intention (item 0 intentions)
+    ]
+  ]
+  
+  if running = false [
+   stop 
+  ]
+  
   if intention = "manage-passengers" [
     drop-arrived-passengers
     pick-passengers 
   ]
   
+  if intention = "check-stop" [
+    if get-available-spots = capacity and (length (get-passengers-at-stop current_stop)) = 0 [
+      set running false 
+    ] 
+  ]
+  
   if intention = "check-amount-people" [
    ; get the number of people of the stop
    let num-passengers amount_passengers_waiting
-   ; get the total capacity of the bus fleet
-   let tot-capacity (sum [capacity] of buses)
    ; if necessary, ask for a new bus 
    let diff (num-passengers - tot-capacity)
+   if diff > bus_type2_capacity [
+     promote-all "scout"   
+   ]
+   if diff <= 0 and last-promote-all = "scout" [
+      promote-all "simple"
+    ]
    while [diff > 0] [
      ifelse diff > bus_type2_capacity [
-       add-bus 3 
-       set diff (diff - bus_type3_capacity) 
-     ] [
+        wrap-add-bus 3  
+        set diff (diff - bus_type3_capacity) 
+      ] [
        ifelse diff > bus_type1_capacity [
-         add-bus 2
+         wrap-add-bus 2
          set diff (diff - bus_type2_capacity) 
        ] [
-         add-bus 1
+         wrap-add-bus 1
          set diff (diff - bus_type1_capacity)  
        ]   
      ] 
@@ -110,6 +196,22 @@ to execute-actions
   ]
 end
 
+to promote-all [role]
+  let c 26
+  while [ c <= last-created-bus] [
+   send-message c role
+   set c (c + 1) 
+  ]
+  set last-promote-all role
+end
+
+to wrap-running
+  if running = false [ 
+    set running true
+    set intentions fput "manage-passengers" intentions
+  ] 
+end
+
 to drop-arrived-passengers
   ; get the list of arrived passengers and drop them
   let arrived-passengers (filter [ passenger -> (item 1 passenger) = current_stop] bus_passengers)
@@ -118,10 +220,18 @@ end
 
 to pick-passengers 
   foreach get-passengers-at-stop current_stop [
-    passenger -> if get-available-spots > 0 [ pick-up-passenger (item 0 passenger) ]
+    passenger -> 
+      if (get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [ 
+        pick-up-passenger (item 0 passenger) 
+      ]
   ] 
 end
 
+to-report is-correct-direction [destination]
+  let schedule beliefs
+  report (position destination schedule) < ((length schedule) / 2)
+end
+  
 to update-beliefs
   ; if first stop of schedule is where the agent is, then move the first element of the list to the end
   if current_stop = item 0 beliefs [
@@ -139,7 +249,7 @@ to update-intentions
   if desire = "transport-passengers" [
     ifelse empty? intentions [
       set intentions lput "manage-passengers" intentions
-      if bus_id = 24 [ set intentions lput "check-amount-people" intentions ]
+      if member? "coordinator" roles [ set intentions lput "check-amount-people" intentions ]
       add-newstop-intentions 
     ] [
       let intention item 0 intentions
@@ -154,6 +264,9 @@ to update-intentions
         ; assuming that the environment is deterministic
         set intentions but-first intentions 
       ] 
+      if intention = "check-stop" [
+        set intentions but-first intentions
+      ]
     ]
   ]
 end
@@ -161,7 +274,12 @@ end
 to add-newstop-intentions
   set intentions lput (item 0 beliefs) intentions
   set intentions lput "manage-passengers" intentions
-  if bus_id = 24 [ set intentions lput "check-amount-people" intentions ]
+  if member? "coordinator" roles [ set intentions lput "check-amount-people" intentions ]
+  if member? "simple" roles [ 
+    set intentions lput "check-stop" intentions 
+    set intentions lput "check-restart" intentions 
+  ]
+  set intentions lput "check-inbox" intentions
 end
 
 
