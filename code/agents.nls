@@ -47,10 +47,21 @@ to init-intentions
 end
 
 to-report get-schedule
-  let schedule [9 8 6 8 2 8 9 3 20 12 15 18 15 12 20 21 22 0 14 23 19 1 7 13 10 17 11 16 5 4] 
-  if bus_id mod 2 != 0 [
-    set schedule (reverse schedule)
-  ] 
+  let schedule [];[9 8 6 8 2 8 9 3 20 12 15 18 15 12 20 21 22 0 14 23 19 1 7 13 10 17 11 16 5 4]
+  let schedule_1 [ 16 11 1 7 17 5 4 ]
+  let schedule_2 [ 9 8 2 8 6 8 9 ]
+  let schedule_3 [ 4 10 13 23 14 23 19 1 7 17 5 4 ]
+  let schedule_4 [ 20 12 15 18 15 0 22 21 20 ]
+  let schedules []
+  set schedules lput schedule_1 schedules
+  set schedules lput schedule_2 schedules
+  set schedules lput schedule_3 schedules
+  set schedules lput schedule_4 schedules
+  set schedules lput (reverse schedule_1) schedules
+  set schedules lput (reverse schedule_2) schedules
+  set schedules lput (reverse schedule_3) schedules
+  set schedules lput (reverse schedule_4) schedules
+  set schedule (item (bus_id mod 8) schedules)     
   set schedule fput 3 schedule
   report schedule
 end
@@ -102,7 +113,7 @@ to execute-actions
       set last-created-bus 24
       set tot-capacity bus_type1_capacity
     ][ 
-      ifelse bus_id = 25 [ 
+      ifelse bus_id > 24 and bus_id < 32 [ 
         set roles ["scout"] 
       ] [
         set roles ["simple"]  
@@ -111,7 +122,10 @@ to execute-actions
     set running true
   ]
   if ticks = 2 and member? "coordinator" roles [
-   wrap-add-bus 1 
+    let counter 0
+    while [counter < 7] [
+      wrap-add-bus 1
+      set counter (counter + 1) ]
   ]
   update-beliefs
   update-desire
@@ -197,7 +211,7 @@ to execute-actions
 end
 
 to promote-all [role]
-  let c 26
+  let c 32
   while [ c <= last-created-bus] [
    send-message c role
    set c (c + 1) 
@@ -214,22 +228,61 @@ end
 
 to drop-arrived-passengers
   ; get the list of arrived passengers and drop them
-  let arrived-passengers (filter [ passenger -> (item 1 passenger) = current_stop] bus_passengers)
+  
+  let arrived-passengers (filter [ passenger -> (check-arrival passenger)] bus_passengers)
   foreach arrived-passengers [ passenger -> drop-off-passenger (item 0 passenger) ]
 end
 
+to-report check-arrival [passenger]
+  let schedule beliefs
+  let joint-pos get-joint-pos
+  let arrived-condition ((item 1 passenger) = current_stop)
+  let other-area-condition (not member?(item 1 passenger) schedule) and (member? current_stop joint-pos)
+  report (arrived-condition or other-area-condition)
+end
+
 to pick-passengers 
+  let joint-pos get-joint-pos
   foreach get-passengers-at-stop current_stop [
     passenger -> 
-      if (get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [ 
+      if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [ 
         pick-up-passenger (item 0 passenger) 
       ]
   ] 
 end
 
+to-report need-to-pick [passenger]
+  ; 1) dest is in my area no matter what I am
+  ; 2) dest is not in my area and the current pos is not a join
+  report destination-in-my-area passenger or ((not destination-in-my-area passenger) and (not in-joint))
+end
+
+to-report destination-in-my-area [passenger]
+  let destination (item 1 passenger)
+  let schedule beliefs
+  report member? destination schedule
+end
+
+to-report in-joint
+  let joint-pos get-joint-pos
+  report member? current_stop joint-pos
+end
+
+to-report get-joint-pos
+  report [3]
+end
+
 to-report is-correct-direction [destination]
   let schedule beliefs
+  if not member? destination schedule [
+    set destination (get-nearest-joint) 
+  ]
   report (position destination schedule) < ((length schedule) / 2)
+end
+
+to-report get-nearest-joint
+  let joint-pos get-joint-pos
+  report (item 0 joint-pos)
 end
   
 to update-beliefs
