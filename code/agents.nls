@@ -92,6 +92,7 @@ to-report get-available-spots
 end
 
 to wrap-add-bus [bustype] 
+  ; wrapper to the add-bus function
   add-bus bustype
   set last-created-bus (last-created-bus + 1)
   let new-capacity bus_type1_capacity
@@ -121,6 +122,8 @@ to execute-actions
     ]
     set running true
   ]
+  
+  ; creating the first 7 buses (+1 original bus) 
   if ticks = 2 and member? "coordinator" roles [
     let counter 0
     while [counter < 7] [
@@ -133,6 +136,7 @@ to execute-actions
   
   let intention (item 0 intentions)
   
+  ; checking intentions and executing actions
   if intention = "check-inbox" [
     let new-messages (filter [m -> ((item 0 m) >= last-inbox-check and (item 0 m) != ticks) ] inbox)
     set last-inbox-check ticks
@@ -152,7 +156,7 @@ to execute-actions
   
   if intention = "check-restart" [
     let num-passengers amount_passengers_waiting
-    let c-global-passengers num-passengers > 2000
+    let c-global-passengers num-passengers > 2000 ; temporary threshold
     let c-current-stop ((length (get-passengers-at-stop current_stop)) != 0 )
     let c-already-running running  
     let restart-condition (c-global-passengers or c-current-stop or c-already-running) 
@@ -211,6 +215,7 @@ to execute-actions
 end
 
 to promote-all [role]
+  ; promoting/demoting all the buses with id over 32 to a specific role
   let c 32
   while [ c <= last-created-bus] [
    send-message c role
@@ -234,6 +239,7 @@ to drop-arrived-passengers
 end
 
 to-report check-arrival [passenger]
+  ; function used to check if the passenger is in the correct stop
   let schedule beliefs
   let joint-pos get-joint-pos
   let arrived-condition ((item 1 passenger) = current_stop)
@@ -241,7 +247,8 @@ to-report check-arrival [passenger]
   report (arrived-condition or other-area-condition)
 end
 
-to pick-passengers 
+to pick-passengers
+  ; function used to decide which are the passenger to pick up
   let joint-pos get-joint-pos
   foreach get-passengers-at-stop current_stop [
     passenger -> 
@@ -258,6 +265,7 @@ to-report need-to-pick [passenger]
 end
 
 to-report destination-in-my-area [passenger]
+  ; fuction used to check if the destination of a specific passenger is in the schedule of the bus
   let destination (item 1 passenger)
   let schedule beliefs
   report member? destination schedule
@@ -269,10 +277,12 @@ to-report in-joint
 end
 
 to-report get-joint-pos
+  ; function used to retrieve the stops used as joints between different schedule
   report [3]
 end
 
 to-report is-correct-direction [destination]
+  ; function used to understand if a specific bus stop is closer to this schedule respect to the reverse one
   let schedule beliefs
   if not member? destination schedule [
     set destination (get-nearest-joint) 
@@ -281,6 +291,7 @@ to-report is-correct-direction [destination]
 end
 
 to-report get-nearest-joint
+  ; function used to 
   let joint-pos get-joint-pos
   report (item 0 joint-pos)
 end
@@ -295,10 +306,11 @@ to update-beliefs
 end
 
 to update-desire
-  ; 
+  ; for now there is a single desire, so no updates
 end
 
 to update-intentions
+  ; function used to add the new intentions
   if desire = "transport-passengers" [
     ifelse empty? intentions [
       set intentions lput "manage-passengers" intentions
@@ -325,6 +337,7 @@ to update-intentions
 end
 
 to add-newstop-intentions
+  ; function used to add the intention for a new bus stop and the management of passengers
   set intentions lput (item 0 beliefs) intentions
   set intentions lput "manage-passengers" intentions
   if member? "coordinator" roles [ set intentions lput "check-amount-people" intentions ]
@@ -334,16 +347,4 @@ to add-newstop-intentions
   ]
   set intentions lput "check-inbox" intentions
 end
-
-
-; Stop the bus
-; if the bus delivered every passenger and there are no more passengers that require a transportation, desire to stop
-; let pending-passengers 0
-;  let c 0
-;  while [ c < (length graph) ] [
-;    set pending-passengers (pending-passengers + (length (get-passengers-at-stop c)))
-;  ]
-;  if pending-passengers = 0 and get-available-spots = capacity [
-;    set desire "Stop"
-;  ]
 
