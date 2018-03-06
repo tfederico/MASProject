@@ -61,7 +61,7 @@ to-report get-schedule ;returns one out of 4 schedules in two directions, depend
   set schedules lput (reverse schedule_4) schedules
   let schedule []
   set schedule (item (bus_id mod 8) schedules)     
-  set schedule fput 3 schedule
+  set schedule lput 3 schedule
   report schedule
 end
 
@@ -113,71 +113,26 @@ end
 
 
 to execute-actions
+  show item 0 intentions
+  show beliefs
   init-first-buses
   update-beliefs
   update-desire
+  execute-intention-appropriate-action 
   update-intentions
-  
-  let intention (item 0 intentions); at each tick perform the next element of the list of intentions
-  
-  ; checking intentions and executing actions
-  if intention = "check-inbox" [
-    check-inbox
-    set intentions but-first intentions
-    set intention (item 0 intentions) 
-  ]
-  
-  if intention = "check-restart" [
-    ; checks whether the bus is empty and no more people are at the busstop, if so, stops moving
-    check-restart
-    ifelse running = false [
-      stop ] [
-      set intentions but-first intentions
-      set intention (item 0 intentions)
-  ]
-  ]
-  
-  if intention = "manage-passengers" [
-    ; drops and picks up passengers at a busstop
-    drop-arrived-passengers
-    pick-passengers 
-    check-stop ;checks if the bus is empty, and if no more people are at the bus-stop
-  ]
-  
-  if intention = "check-amount-people" [
-    ; only done if role is coordinator
-    ; checks whether the total capacity of the fleet is lower than the amount of people waiting
-    ; if so asks for new buses using wrap-add-bus and promotes all buses to role of scout
-    check-amount-of-people
-  ]
-  
-  if is-number? intention [
-   ;travelling between busstops based on schedule
-   travel-to intention
-  ]
 end
 
 
 to update-intentions
   ; function used to add the new intentions
+  let intention (item 0 intentions)
   if desire = "transport-passengers" [
-    ifelse empty? intentions [
-      set intentions lput "manage-passengers" intentions
-      if member? "coordinator" roles [ set intentions lput "check-amount-people" intentions ]
-      add-newstop-intentions 
-    ] [
-      let intention item 0 intentions
-      
-      if is-number? intention [
-        if current_stop = intention [
-          set intentions but-first intentions
-          add-newstop-intentions
-        ] 
-      ]
-      if intention = "manage-passengers" or intention = "check-amount-people" [
-        ; assuming that the environment is deterministic
-        set intentions but-first intentions 
-      ] 
+    ifelse length intentions = 1 [  ; if last intention is being handled, reset intentions
+      set intentions but-first intentions
+      add-newstop-intentions] [
+      ifelse (is-number? intention) and (current_stop != intention) [ ; if you're travelling but haven't reached next stop, do not update intentions yet
+        set intention intention ] [
+        set intentions but-first intentions ] ; otherwise update intention after executing intention-appropriate-action
     ]
   ]
 end
@@ -208,6 +163,38 @@ to update-desire
 end
 
 
+to execute-intention-appropriate-action
+  let intention (item 0 intentions)
+  ; checking intentions and executing actions
+ 
+  if intention = "check-inbox" [
+    check-inbox
+  ]
+  
+  if intention = "check-restart" [
+    ; checks whether the bus is empty and no more people are at the busstop, if so, stops moving
+    check-restart
+    if running = false [ stop ] 
+  ]
+  
+  if intention = "manage-passengers" [
+    ; drops and picks up passengers at a busstop
+    drop-arrived-passengers
+    pick-passengers 
+    check-stop ;checks if the bus is empty, and if no more people are at the bus-stop
+  ]
+  
+  if intention = "check-amount-people" [
+    ; only done if role is coordinator
+    ; checks whether the total capacity of the fleet is lower than the amount of people waiting
+    ; if so asks for new buses using wrap-add-bus and promotes all buses to role of scout
+    check-amount-of-people
+  ]
+  
+  if is-number? intention [
+    travel-to intention ]
+end
+
 ; ---------------------------------------------------------------------------------------
 ; function used to check-inbox, to see whether different role is assigned by coordinator
 
@@ -233,7 +220,6 @@ to check-stop
   if get-available-spots = capacity and (length (get-passengers-at-stop current_stop)) = 0 [
     set running false 
   ]
-  show "I'm stopping"
 end
 
 ; ---------------------------------------------------------------------------------------
@@ -391,7 +377,8 @@ to-report get-shared-stops
   set shared-stops lput [3] shared-stops
   ; between 3 and 4
   set shared-stops lput [3] shared-stops
-  report [3]
+  report shared-stops
+  show shared-stops
 end
 
 to-report is-correct-direction [destination]
@@ -406,7 +393,8 @@ end
 to-report get-nearest-shared-stop
   ; function used to get the nearest shared stop to bring the passenger to
   let shared-stops get-shared-stops
-  report (item 0 shared-stops)
+  ;report (item 0 shared-stops)
+  report 3
 end
 
 ; ---------------------------------------------------------------------------------------
