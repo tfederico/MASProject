@@ -473,7 +473,7 @@ to add-to-local-buses [id id-type]
 end
 
 to-report choose-bus-from-availables [diff]; diff is the difference between the amount of people waiting in a certain area, and the fleet capacity of that area 
-  ;using this function, the bus assigns buses to reallocate, for as long as the bus capacity is larger then this difference
+  ;using this function, the bus assigns the best (i.e., the biggest one) bus to reallocate, as long as that bus is not a coordinator or a scout
   let i 0
   let c -1
   let id -1
@@ -499,6 +499,7 @@ to-report choose-bus-from-availables [diff]; diff is the difference between the 
 end
 
 to-report get-capacity-from-id [id]
+  ; return the capacity of a bus based on its type
   let c 0
   if bus_type = 1 [
     set c bus_type1_capacity
@@ -514,6 +515,7 @@ end
 
 
 to-report get-local-capacity
+  ; this function return the capacity of a specific area
   let c 0
   foreach local-buses [ b ->
     show word "Show bus: " b
@@ -523,6 +525,7 @@ to-report get-local-capacity
 end
 
 to-report get-local-waiting-passengers
+ ; this function return the amount of waiting passengers in a specific area
  let p 0
  foreach beliefs [ bus-stop ->
    set p (p + (length (get-passengers-at-stop bus-stop)))
@@ -573,6 +576,7 @@ to pick-passengers
 end
 
 to-report get-available-spots
+  ; function used to see how many available spots we have in a bus
   ifelse is-turtle? self = false [
     show (word "ERROR: get-available-spot is a command for a bus")
     report -1 
@@ -583,7 +587,8 @@ end
 
 ;------------functions used, to transfer passengers to a shared stop, where they can be picked up by a bus in a different schedule -------------------;
 
-to-report need-to-pick [passenger] ; if the passenger needs to go to an area that is not in the schedule of the bus, and the bus is not a shared stop, it will pick this passenger up
+to-report need-to-pick [passenger]
+  ; if the passenger needs to go to an area that is not in the schedule of the bus, and the bus is not a shared stop, it will pick this passenger up
   report destination-in-my-area passenger or ((not destination-in-my-area passenger) and (not in-joint))
 end
 
