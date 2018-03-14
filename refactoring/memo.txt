@@ -1,0 +1,11 @@
+All'inizio, abbiamo una intention "get-schedule" per gestire l'assegnazione dela schedule al bus. Dopo averla assegnata, dobbiamo mandare il msg al coordinatore per dire che siamo nella sua area.
+
+Quando si fa promotion/demotion, bisogna cambiare le liste degli scout.
+
+La capacità totale la conosce solo il coordinatore.
+
+Mettere nell'update beliefs il cambio di schedule
+
+Mettere nell'update intentions la lettura dei messaggi
+
+

@@ -69,7 +69,7 @@ end
 
 to update-intentions
   ; If we do not have any beliefs (schedule), the agent need a new schedule
-  ifelse empty? beliefs [ 
+  ifelse empty? beliefs and not member? "get-schedule" intentions [ 
     set intentions lput "get-schedule" intentions
   ][
    ; TODO: read the messages and modify the intentions according to them 
@@ -106,23 +106,13 @@ end
 
 to execute-intentions  
   if item 0 intentions = "get-schedule" [ execute-get-schedule ]
-   show "0"
-   show beliefs 
   if not empty? intentions [
     if item 0 intentions = "send-initial-schedules" [ execute-send-initial-schedules ]
     if item 0 intentions = "drop-passengers" [ execute-drop-passengers ]
     if item 0 intentions = "check-stop" [ execute-check-stop ]
-      show "1"
-      show beliefs 
     if item 0 intentions = "check-restart" [ execute-check-restart ]
     if item 0 intentions = "pick-passengers" [ execute-pick-passengers ]
     if item 0 intentions = "check-amount-people" [ execute-check-amount-people ]  
-    
-      show "2"
-      show beliefs 
     if is-number? item 0 intentions [ execute-travel ]   
-      show "3"
-      show beliefs 
   ]
-  
 end

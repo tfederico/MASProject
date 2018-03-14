@@ -1,7 +1,7 @@
 ; Execute the action get-schedule: the agent needs to retrieve its schedule
 to execute-get-schedule 
   ifelse is-at-least-role "coordinator" [
-   set beliefs (get-schedule-from-id 0)
+   set beliefs (get-schedule-from-id-without-three 0)
   ][
    ; The bus is not a coordinator
    ; Get the list of messages regarding the schedules
@@ -9,7 +9,7 @@ to execute-get-schedule
    ; If we received the schedule, assign it to the bus
    if not empty? msgs [
     let sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
-    set beliefs (get-schedule-from-id sched_id)  
+    set beliefs (get-schedule-from-id-without-three sched_id)  
    ]  
   ]
   ; If we managed to obtain a schedule, add the end station of the schedule and remove the intention of getting a schedule
@@ -74,7 +74,8 @@ end
 to execute-travel
   let intention (item 0 intentions)
   ifelse current_stop = intention [ 
-    set intention butfirst intentions 
+    set intentions butfirst intentions
+    show intentions
   ] [
     travel-to intention
   ]

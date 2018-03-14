@@ -46,10 +46,11 @@ to slide-beliefs
   let tmp (item 0 beliefs)
   set beliefs (but-first beliefs)
   set beliefs lput tmp beliefs
+  show "beliefs slided"
 end
 
 ; Return the schedule of id sched_id
-to-report get-schedule-from-id [ sched_id ]
+to-report get-schedule-from-id-without-three [ sched_id ]
   report (item sched_id schedules)
 end
 
@@ -69,7 +70,7 @@ to-report get-schedules-with-stop [ s ]
   let scheds []
   let index 0
   while [ index < ((length schedules) / 2)] [
-    if member? s (item index schedules) [ set scheds lput (item index schedules) scheds ]
+    if member? s (item index schedules) or s = 3 [ set scheds lput (item index schedules) scheds ]
     set index (index + 1)
   ]
   report scheds
@@ -134,20 +135,28 @@ end
 ; Given a destination not in this schedule, return the nearest joint position to reach the area that has that destination
 to-report get-nearest-joint [ destination ]
   let schedules-with-destination (get-schedules-with-stop destination)
+  show beliefs
   let joints []
   foreach schedules-with-destination [ s ->
     let js get-joints beliefs s
     foreach js [ pos -> set joints lput pos joints ]
   ]
+  show schedules-with-destination
+  show joints
   let nearest_joint -1
   let distance_nearest_joint 1000000
   foreach joints [ j ->
     let d (compute-distance beliefs j (length beliefs - 1))
     if d < distance_nearest_joint [
      set distance_nearest_joint d
-     set nearest_joint j 
+     set nearest_joint j
+     
     ]
   ]
+  if (nearest_joint = -1) [
+    set nearest_joint 3 ; 3 is always a joint
+  ]
+    
   report nearest_joint
 end
 
@@ -156,8 +165,9 @@ to-report get-joints [schedule_1 schedule_2]
   let joints []
   let index 0 
   while [ index < length schedule_1 ] [
-    if member? (item index schedule_1 ) schedule_2 [ set joints lput (item index schedule_1) joints ]
+    if member? (item index schedule_1) schedule_2 [ set joints lput (item index schedule_1) joints ]
     set index (index + 1)
   ]
+  if not member? 3 joints [set joints lput 3 joints]
   report joints
 end
