@@ -1,0 +1,163 @@
+; Check if the role of the agent is more important or equal than check_role
+to-report is-at-least-role [check_role]
+  let agent_importance (role-to-int role)
+  let to-check-importance (role-to-int check_role)
+  report agent_importance >= to-check-importance
+end
+
+; Return the importance of a role
+to-report role-to-int [r]
+  let value 0
+  if r = "scout" [
+    set value 1
+  ]
+  if r = "local coordinator" [
+   set value 2 
+  ]
+  if r = "coordinator" [
+   set value 3 
+  ]
+  report value
+end
+
+; Wrapper to the add bus function, in order to execute additional operations related to the addition of a bus
+to wrap-add-bus [t]
+  ; Add the new bus
+  add-bus t
+  ; Remember the id of the last created bus
+  set last_created_bus (last_created_bus + 1) 
+  ; Remember the tick of the last bus creation
+  set last_created_bus_tick ticks
+  ; Update the total capacity of the buses stored by the coordinator
+  set total_capacity (total_capacity + (get-capacity-from-type t))
+end
+
+; Return the capacity of the bus type t
+to-report get-capacity-from-type [t]
+  let c 0
+  if t = 1 [ set c bus_type1_capacity ]
+  if t = 2 [ set c bus_type2_capacity ]
+  if t = 3 [ set c bus_type3_capacity ]
+  report c
+end
+
+; Move the first element of the beliefs to the end of the list
+to slide-beliefs 
+  let tmp (item 0 beliefs)
+  set beliefs (but-first beliefs)
+  set beliefs lput tmp beliefs
+end
+
+; Return the schedule of id sched_id
+to-report get-schedule-from-id [ sched_id ]
+  report (item sched_id schedules)
+end
+
+; True if the passenger is at the destination, false otherwise
+to-report at-destination [ passenger ]
+  report (item 1 passenger) = current_stop
+end
+
+; True if the passenger is at a joint position that allows him to reach the area of his destination, False otherwise
+to-report at-joint-position [ passenger ]
+  let destination_areas (filter [schedule -> not (are-the-same-schedule schedule beliefs)] (get-schedules-with-stop (item 1 passenger)))  
+  report member? current_stop destination_areas 
+end
+
+; Get the list of schedules with the bus stop s
+to-report get-schedules-with-stop [ s ]
+  let scheds []
+  let index 0
+  while [ index < ((length schedules) / 2)] [
+    if member? s (item index schedules) [ set scheds lput (item index schedules) scheds ]
+    set index (index + 1)
+  ]
+  report scheds
+end
+
+; Check whether two schedules are the same
+to-report are-the-same-schedule [ schedule_1 schedule_2 ]
+  let same true
+  ifelse length schedule_1 != length schedule_2 [ 
+    set same false 
+  ][
+    let index 0
+    while  [ same and index < length schedule_1 ] [
+     set same (member? (item index schedule_1) schedule_2) 
+     set index (index + 1)
+    ] 
+  ]
+  report same  
+end
+
+; Return true if the passengers is in the area of his destination or if he is not but he is in a joint position
+to-report need-to-pick [ p ]
+  report destination-in-my-area p or ((not destination-in-my-area p) and (not at-joint-position p))
+end
+
+; Return true if the destination of the passenger is in the schedule of the agent
+to-report destination-in-my-area [ p ]
+  let dest (item 1 p)
+  report member? dest beliefs
+end
+
+; Return the number of free spots in the bus
+to-report get-available-spots
+  report (get-capacity-from-type bus_type) - (length bus_passengers)
+end
+
+; Return true if the passenger's destination is closer to this schedule compared to the reverse one
+to-report is-correct-direction [ destination ]
+  let schedule beliefs
+  if not member? destination schedule [
+   set destination (get-nearest-joint destination) 
+  ]
+  let distance_with_this_schedule (compute-distance schedule destination (length schedule - 1))
+  let distance_with_reverse_schedule (compute-distance (reverse schedule) destination 0)  
+  report distance_with_this_schedule <= distance_with_reverse_schedule
+end
+
+; Return the distance between the current stop and the destination using the schedule
+to-report compute-distance [ schedule destination index-current-stop ]
+  let d 0
+  let index index-current-stop
+  let found false
+  let l (length schedule)
+  while [ not found ] [
+   set found (item ((index + 1) mod l) schedule) = destination
+   set d (d + (get-distance (item (index mod l) schedule) (item ((index + 1) mod l) schedule)))
+   set index (index + 1)
+  ]
+  report d
+end
+
+; Given a destination not in this schedule, return the nearest joint position to reach the area that has that destination
+to-report get-nearest-joint [ destination ]
+  let schedules-with-destination (get-schedules-with-stop destination)
+  let joints []
+  foreach schedules-with-destination [ s ->
+    let js get-joints beliefs s
+    foreach js [ pos -> set joints lput pos joints ]
+  ]
+  let nearest_joint -1
+  let distance_nearest_joint 1000000
+  foreach joints [ j ->
+    let d (compute-distance beliefs j (length beliefs - 1))
+    if d < distance_nearest_joint [
+     set distance_nearest_joint d
+     set nearest_joint j 
+    ]
+  ]
+  report nearest_joint
+end
+
+; Return the joint positions between two schedules
+to-report get-joints [schedule_1 schedule_2]
+  let joints []
+  let index 0 
+  while [ index < length schedule_1 ] [
+    if member? (item index schedule_1 ) schedule_2 [ set joints lput (item index schedule_1) joints ]
+    set index (index + 1)
+  ]
+  report joints
+end

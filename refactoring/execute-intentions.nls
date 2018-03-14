@@ -1,0 +1,81 @@
+; Execute the action get-schedule: the agent needs to retrieve its schedule
+to execute-get-schedule 
+  ifelse is-at-least-role "coordinator" [
+   set beliefs (get-schedule-from-id 0)
+  ][
+   ; The bus is not a coordinator
+   ; Get the list of messages regarding the schedules
+   let msgs (get-msgs-with-header-id (get-new-messages) 0)
+   ; If we received the schedule, assign it to the bus
+   if not empty? msgs [
+    let sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
+    set beliefs (get-schedule-from-id sched_id)  
+   ]  
+  ]
+  ; If we managed to obtain a schedule, add the end station of the schedule and remove the intention of getting a schedule
+  if not empty? beliefs [ 
+    set beliefs lput 3 beliefs 
+    set intentions butfirst intentions 
+    set running true
+  ]
+end
+
+; Execute the action send-initial-schedules: at the beginning, the coordinator sends the schedules to the local coordinators and the scouts
+to execute-send-initial-schedules
+  let index 1
+  ; Send the schedules to the local coordinators
+  foreach local_coordinators [ lc ->
+    if coordinator != lc [
+      send-message lc (word "schedule " index)
+      set index (index + 1)
+    ]
+  ]
+  ; Send the schedules to the scouts
+  foreach scouts [ s ->
+    send-message s (word "schedule " index)
+    set index (index + 1)
+  ]
+  set intentions butfirst intentions
+end
+
+; The bus drops all the passengers that are in their destination (or the passengers that needs to go to another schedule and the current stop is a joint position)
+to execute-drop-passengers
+  ; Get the list of arrived passengers and drop them
+  let arrived_passengers (filter [ passenger -> (at-destination passenger or at-joint-position passenger)] bus_passengers)
+  foreach arrived_passengers [ passenger -> drop-off-passenger (item 0 passenger) ]
+  ; Remove the intentions from the list
+  set intentions butfirst intentions
+end
+
+to execute-check-stop
+  set intentions butfirst intentions
+end
+
+to execute-check-restart
+  set intentions butfirst intentions
+end
+
+; Pick all the passengers that are convenient to pick up, considering the direction of the bus and the passenger destination
+to execute-pick-passengers
+  foreach get-passengers-at-stop current_stop [ passenger ->
+    if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [
+     pick-up-passenger (item 0 passenger) 
+    ]
+  ]
+  
+  ; Remove the intentions from the list
+  set intentions butfirst intentions
+end
+
+to execute-check-amount-people
+  set intentions butfirst intentions
+end
+
+to execute-travel
+  let intention (item 0 intentions)
+  ifelse current_stop = intention [ 
+    set intention butfirst intentions 
+  ] [
+    travel-to intention
+  ]
+end

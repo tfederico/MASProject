@@ -1,0 +1,128 @@
+__includes ["init.nls" "execute-intentions.nls" "utils.nls" "messages.nls"]
+
+buses-own [
+  ; Static, read-only variables. These values never change. You can read them, but you cannot change them.
+  bus_id          ; The ID of a given agent (bus). Each agent has a unique ID.
+  bus_type        ; The type of a given agent (bus). 1 means "small", 2 means "medium" and 3 means "large".
+    
+  ; Dynamic, read-only variables. These values may change over time. You can read them, but you cannot change them.
+  inbox           ; List containing all the incoming messages (a given message is a list like this [tick sender message]).
+  bus_passengers  ; List containing all the passengers that the agent (bus) is currently carrying (represented as a list like this [passenger_id bus_stop]).
+  previous_stop   ; ID of the last bus stop that the agent (bus) visited (-1 means that the agent has not visited any bus stop yet).
+  current_stop    ; ID of the bus stop where the agent (bus) currently is (-1 means that the agent is not at any bus stop).
+  next_stop       ; ID of the bus stop the agent (bus) is traveling to (-1 means that the agent is not travelling to any bus stop).
+
+  ; New local variables for students.
+  ; You can create any new local variable you want. Just declare them here.
+  message_headers ; list of headers of messages, according to the ontology "messageType message"
+  local_coordinators ; list of local coordinators at the beginning of the simulation, every bus known which are the coordinators
+  coordinator ; The id of the coordinator at the beginning of the simulation
+  scouts ; list of scouts at the beginning of the simulation
+  local_buses ; The list of local buses to an area. Each coordinator keeps track of the buses in its area
+  last_help_sent ; tick of the last help message sent by the coordinator. 0 if no help was sent
+  intentions ; list of intentions of the agent
+  beliefs ; schedule of the agent
+  role ; each agent can have one or more roles, that define its behaviour
+  running ; true if the bus is running, false if it is waiting
+  initial_local_coordinator_type ; initial bus type of the local coordinators
+  initial_scout_type ; initial bus type of the scouts
+  last_created_bus ; id of the last created bus. This variable is used only by the coordinator
+  last_created_bus_tick ; tick of the last time in which the coordinator created a bus. Only the coordinator uses this var
+  total_capacity ; total capacity of the fleet. This is used only by the coordinator
+  last_inbox_check ; Last time in which the agent checked its inbox
+  
+  ; SCHEDULES
+  schedules
+]
+ 
+globals [graph]
+
+to init-buses
+  ; Initialize your agents here.
+  ; Initialize local variables
+  init-local-vars
+end
+
+to execute-actions
+  ; The first buses cannot be created in the init-buses by design. The coordinator should create the local coordinators and the scouts now
+  if ticks = 2 and (is-at-least-role "coordinator") [
+    create-first-buses
+  ]
+  ; Add decision making strategies for your agents here.
+  ; You are allowed to use the global variable 'ticks'.
+  ; Update the beliefs (schedule)
+  update-beliefs
+  ; Update the intentions
+  update-intentions
+  ; Execute intentions, if any
+  if not empty? intentions [ execute-intentions ] 
+end
+
+to update-beliefs
+  if not empty? beliefs [
+   ; if we reached the first stop of the beliefs, slide it, in order to have the next stop as the first element of the beliefs
+    if current_stop = item 0 beliefs [
+      slide-beliefs
+    ] 
+  ]
+end
+
+to update-intentions
+  ; If we do not have any beliefs (schedule), the agent need a new schedule
+  ifelse empty? beliefs [ 
+    set intentions lput "get-schedule" intentions
+  ][
+   ; TODO: read the messages and modify the intentions according to them 
+    
+   ; If the agent is the coordinator, send a message to the local coordinators and to the scouts with the schedule that they should follow
+   if is-at-least-role "coordinator" and ticks = 3 [
+     set intentions lput "send-initial-schedules" intentions
+     add-current-stop-intention
+   ]
+    
+   if empty? intentions [
+    ; We have no intentions. We start by managing the passengers of the current bus stop and by checking the amount of people (only the coordinator)
+    ; We prepare the intentions for the next stop
+    add-current-stop-intention 
+   ]
+  ]
+end
+
+; Add the intention related to being in a bus stop
+to add-current-stop-intention
+  ; When the bus arrives to a stop, drop the passengers that are in the destination
+  set intentions lput "drop-passengers" intentions
+  ; The bus checks whether it can have a break or not
+  set intentions lput "check-stop" intentions
+  ; The bus check whether it can start again after the break
+  set intentions lput "check-restart" intentions
+  ; The bus picks the passengers of the bus stop
+  set intentions lput "pick-passengers" intentions 
+  ; If the bus is the coordinator, it checks for danger situations
+  if is-at-least-role "coordinator" [ set intentions lput "check-amount-people" intentions ]
+  ; Add the intention of going to the next stop
+  set intentions lput (item 0 beliefs) intentions
+end
+
+to execute-intentions  
+  if item 0 intentions = "get-schedule" [ execute-get-schedule ]
+   show "0"
+   show beliefs 
+  if not empty? intentions [
+    if item 0 intentions = "send-initial-schedules" [ execute-send-initial-schedules ]
+    if item 0 intentions = "drop-passengers" [ execute-drop-passengers ]
+    if item 0 intentions = "check-stop" [ execute-check-stop ]
+      show "1"
+      show beliefs 
+    if item 0 intentions = "check-restart" [ execute-check-restart ]
+    if item 0 intentions = "pick-passengers" [ execute-pick-passengers ]
+    if item 0 intentions = "check-amount-people" [ execute-check-amount-people ]  
+    
+      show "2"
+      show beliefs 
+    if is-number? item 0 intentions [ execute-travel ]   
+      show "3"
+      show beliefs 
+  ]
+  
+end

@@ -1,0 +1,98 @@
+; This file contains every initalization that has to be performed at the creation of a bus
+
+; The list of variable that are local to the agent are initialized
+to init-local-vars
+  ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
+  set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
+  ; Initialize schedules
+  set schedules [[ 16 11 1 7 17 5 4 ] [ 9 8 2 8 6 8 9 ] [ 4 10 13 23 14 23 19 1 7 17 5 4 ] [ 20 12 15 18 15 0 22 21 20 ]]
+  set schedules lput (reverse [ 16 11 1 7 17 5 4 ]) schedules
+  set schedules lput (reverse [ 9 8 2 8 6 8 9 ]) schedules
+  set schedules lput (reverse [ 4 10 13 23 14 23 19 1 7 17 5 4 ]) schedules
+  set schedules lput (reverse [ 20 12 15 18 15 0 22 21 20 ]) schedules 
+  
+  
+  ; Initialize the message headers
+  set message_headers ["schedule" "role" "assigned" "help-request" "help-answer" "help-accepted" "reallocated"]
+  
+  ; Initialize last inbox check
+  set last_inbox_check 0
+  
+  ; Initialize the list of coordinators
+  set local_coordinators [ 24 25 26 27 ]
+  ; Initialize the super coordinator
+  set coordinator 24
+  ; Initialize the list of scouts
+  set scouts [28 29 30 31 ]
+  ; At the beginning, the bus does not have a schedule and it is not moving
+  set running false
+  ; Local cooordinators-specific vars 
+  if member? bus_id local_coordinators [
+    ; keeps track of the local buses in its area
+    set local_buses []
+    set local_buses lput bus_id local_buses
+    ; the last help sent, when a coordinator is created, is 0 because it does not have sent an help yet
+    set last_help_sent 0
+  ]
+  ; Coordinator specific
+  if bus_id = coordinator [
+    ; Set the types of the initial local coordinators and scouts
+    set initial_local_coordinator_type 1
+    set initial_scout_type 1
+    ; Initialize support variables
+    set last_created_bus 24
+    set last_created_bus_tick ticks
+    set total_capacity (get-capacity-from-type bus_type) 
+  ]
+  
+  ; initialize the intentions
+  init-intentions
+  ; initialize the beliefs
+  init-beliefs
+  ; initialize the roles of the agent
+  init-roles
+end
+
+; The list of intentions is initialized
+to init-intentions
+  ; At the beginning, the agent does not have any intentions
+  set intentions []
+end
+
+; The list of beliefs (the schedule of the agent) is initialized
+to init-beliefs
+  ; At the beginning, the list of beliefs of the agent is empty (the schedule is not assigned yet)
+  set beliefs []
+end
+
+; Initialize the role of the agent, used to define its behavior
+to init-roles
+  ifelse (not member? bus_id scouts) and (not member? bus_id local_coordinators) and (bus_id != coordinator) [
+   ; The bus is simple, assign it as a role
+   set role "simple" 
+  ] [
+   ; the bus is not simple
+   ifelse member? bus_id scouts [
+      ; The bus is a scout, assign it as a role
+      set role "scout"
+    ][
+     ifelse bus_id = coordinator [
+       ; the bus is the coordinator
+       set role "coordinator" 
+      ][
+       ; the bus is a local coordinator
+       set role "local coordinator" 
+      ]
+    ] 
+  ]
+end
+
+to create-first-buses
+  ; Create the local coordinators
+  foreach local_coordinators [ lc ->
+    ; Only create the local coordinators that are not the coordinator
+    if coordinator != lc [ wrap-add-bus initial_local_coordinator_type ]
+  ]
+  ; Create the scouts
+  foreach scouts [ s -> wrap-add-bus initial_scout_type ]  
+end
