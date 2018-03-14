@@ -344,7 +344,6 @@ to check-amount-people
       while [index < 27] [
         if diff > 0 and index != bus_id and (ticks - last-help-sent > 10) [ ; todo: check threshold
          send-message index (item 2 message-headers)
-         show "HELP PORCO DIO"
          set last-help-sent ticks
         ]
         set index (index + 1)
@@ -355,20 +354,23 @@ to check-amount-people
       set num-passengers amount_passengers_waiting
       set c tot-capacity
       set diff (num-passengers - c)
-    if amount_passengers_waiting > 200 and last-promote-all != "scout"[
-      promote-all "scout" ]
-    if amount_passengers_waiting < 50 and last-promote-all = "scout" [
-      promote-all "simple" ]
+    ;if amount_passengers_waiting > 200 and last-promote-all != "scout"[
+    ;  promote-all "scout" ]
+    ;if amount_passengers_waiting < 50 and last-promote-all = "scout" [
+    ;  promote-all "simple" ]
       ;show word "difference: " diff
-    while [diff > 500] [
-        set diff (create-new-bus diff) 
-       ] 
+    
+    while [diff > 0 and last-created-bus <= 60] [
+        set diff (create-new-bus diff) ; TODO parameter tuning
+        show last-created-bus 
+    ] 
+    
     ] 
   
 end
 
 to-report create-new-bus [diff] 
-  ; the coordinator creates new buses using this function, the amount and size depending on the difference between amount of people waiting and total fleet capacity
+   ;the coordinator creates new buses using this function, the amount and size depending on the difference between amount of people waiting and total fleet capacity
   let d 0
   ifelse diff > get-capacity-from-id 2 [
     wrap-add-bus 3  
@@ -401,7 +403,6 @@ to intention-check-inbox
   
   foreach new-messages [ m ->
     let msg (item 2 m)
-    show msg
     let sender (item 1 m)
     
     ;be-promoted
@@ -432,9 +433,7 @@ to intention-check-inbox
         let avail choose-bus-from-availables diff
         if not empty? avail [
           send-message sender (word "help-answer " avail)
-          show (word "help-answer " avail)
           set local-buses (remove avail local-buses)
-          show local-buses
         ]
       ]
     ]
@@ -455,8 +454,6 @@ to intention-check-inbox
         send-message id (word "reallocate " id)
         add-to-local-buses id cap
         ;set local-buses lput id local-buses
-        show word "I accepted help from " sender
-        show bus_id
       ]
     ]
     ;give-help
@@ -489,7 +486,6 @@ to intention-check-inbox
       ] [
         let position-change-schedule ((position 3 beliefs) + 1)
         set beliefs replace-item position-change-schedule beliefs "change-schedule"
-        show (word "i will change schedule" ticks beliefs)
       ]
     ]  
     
