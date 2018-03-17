@@ -55,13 +55,21 @@ to execute-check-stop
   let people-waiting-in-area get-people-waiting-in-my-area
   let is-empty (get-available-spots = get-capacity-from-type bus_type)
   
+  if (people-waiting-in-area = 0 and is-empty) or (is-empty and role = "simple" and get-passengers-at-stop current_stop = 0)[
+   set running false 
+  ]
   set intentions butfirst intentions
 end
 
 ; Check wheter the bus has to restart after stopping
 to execute-check-restart
   ; 1) Every kind of bus (i.e., every role) restarts if there are people waiting in its area
-  set intentions butfirst intentions
+  let people-waiting-in-area get-people-waiting-in-my-area
+  if people-waiting-in-area != 0 [
+   set running true
+   set intentions butfirst intentions 
+  ]
+  
 end
 
 ; Pick all the passengers that are convenient to pick up, considering the direction of the bus and the passenger destination

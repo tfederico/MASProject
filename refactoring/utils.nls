@@ -175,7 +175,7 @@ to-report get-people-waiting-in-my-area
     let waiting_passengers get-passengers-at-stop b_stop
     ; removing people in joints that are not travelling to my area
     set waiting_passengers (filter [p -> (member? (item 1 p) beliefs) or (not at-joint-position p and not member? (item 1 p) beliefs)] waiting_passengers)
-    set waiting_passengers (filter [p -> is-correct-direction (item 1 p)] waiting_passengers)
+    ; set waiting_passengers (filter [p -> is-correct-direction (item 1 p)] waiting_passengers)
     set people (people + length waiting_passengers)
   ]
   report people
