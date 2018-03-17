@@ -13,7 +13,7 @@ to init-local-vars
   
   
   ; Initialize the message headers
-  set message_headers ["schedule" "role" "assigned" "help-request" "help-answer" "help-accepted" "reallocated"]
+  set message_headers ["schedule" "role" "assigned" "help-request" "help-answer" "help-accepted" "reallocated" "bid-request"]
   
   ; Initialize last inbox check
   set last_inbox_check 0

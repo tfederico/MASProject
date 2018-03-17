@@ -72,7 +72,16 @@ to update-intentions
   ifelse empty? beliefs and not member? "get-schedule" intentions [ 
     set intentions lput "get-schedule" intentions
   ][
-   ; TODO: read the messages and modify the intentions according to them 
+   ; Read the messages and modify the intentions according to them 
+   let new_msgs get-new-messages
+   foreach new_msgs [ msg -> 
+     let m (item 2 msg)
+     let header (extract-header m)
+     
+      if header = "bid-request" [
+        set intentions fput "bid" intentions
+     ]    
+   ]
     
    ; If the agent is the coordinator, send a message to the local coordinators and to the scouts with the schedule that they should follow
    if is-at-least-role "coordinator" and ticks = 3 [
@@ -106,6 +115,7 @@ end
 
 to execute-intentions  
   if item 0 intentions = "get-schedule" [ execute-get-schedule ]
+  if item 0 intentions = "bid" [ execute-bid ]
   if not empty? intentions [
     if item 0 intentions = "send-initial-schedules" [ execute-send-initial-schedules ]
     if item 0 intentions = "drop-passengers" [ execute-drop-passengers ]

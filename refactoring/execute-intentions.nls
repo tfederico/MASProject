@@ -5,7 +5,7 @@ to execute-get-schedule
   ][
    ; The bus is not a coordinator
    ; Get the list of messages regarding the schedules
-   let msgs (get-msgs-with-header-id (get-new-messages) 0)
+   let msgs (get-msgs-with-header-id (inbox) 0)
    ; If we received the schedule, assign it to the bus
    if not empty? msgs [
     let sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
@@ -67,16 +67,30 @@ to execute-pick-passengers
   set intentions butfirst intentions
 end
 
+; Checks the number of people waiting compared to the number of buses: if the buses are not enough, call new buses
 to execute-check-amount-people
+  ; Only the coordinator can create new buses
+  if is-at-least-role "coordinator" [
+    ; Compute the difference between the number of passengers waiting and the capacity of the fleet, as a danger measure
+    let diff (amount_passengers_waiting - total_capacity)
+    ; While we do not have enough buses to manage the danger situation, create new buses
+    while [ diff > 0] [ set diff (create-buses-from-diff diff) ]
+  ]
   set intentions butfirst intentions
 end
 
+; Travel to the next stop
 to execute-travel
   let intention (item 0 intentions)
   ifelse current_stop = intention [ 
     set intentions butfirst intentions
-    show intentions
   ] [
     travel-to intention
   ]
+end
+
+; Tell to the coordinator the situation of your area, trying to obtain new buses
+to execute-bid
+  let bid get-
+  send-message coordinator (word "bid " bid)  
 end
