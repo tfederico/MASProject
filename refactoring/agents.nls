@@ -30,6 +30,8 @@ buses-own [
   last_created_bus_tick ; tick of the last time in which the coordinator created a bus. Only the coordinator uses this var
   total_capacity ; total capacity of the fleet. This is used only by the coordinator
   last_inbox_check ; Last time in which the agent checked its inbox
+  bid_list ; List of bid by the local coordinators. Only the coordinator keeps track of this list. [ [local_coordinator bid] ...]
+  bus_to_allocate ; List of buses in the form [[bus_id bus_type] ...] that represents a set of buses that have to be allocated to a schedule
   
   ; SCHEDULES
   schedules
@@ -77,6 +79,13 @@ to update-intentions
    foreach new_msgs [ msg -> 
      let m (item 2 msg)
      let header (extract-header m)
+      
+      if header = "bid" [
+       let bid extract-message m
+       set bid read-from-string bid
+       update-bid-list bid (item 1 msg)
+       set intentions fput "assign-new-buses" intentions
+      ]
      
       if header = "bid-request" [
         set intentions fput "bid" intentions
@@ -114,15 +123,22 @@ to add-current-stop-intention
 end
 
 to execute-intentions  
-  if item 0 intentions = "get-schedule" [ execute-get-schedule ]
-  if item 0 intentions = "bid" [ execute-bid ]
-  if not empty? intentions [
-    if item 0 intentions = "send-initial-schedules" [ execute-send-initial-schedules ]
-    if item 0 intentions = "drop-passengers" [ execute-drop-passengers ]
-    if item 0 intentions = "check-stop" [ execute-check-stop ]
-    if item 0 intentions = "check-restart" [ execute-check-restart ]
-    if item 0 intentions = "pick-passengers" [ execute-pick-passengers ]
-    if item 0 intentions = "check-amount-people" [ execute-check-amount-people ]  
-    if is-number? item 0 intentions [ execute-travel ]   
+  let int_len (length intentions)
+  let prev_int_len 100000
+  while [ not empty? intentions and int_len < prev_int_len] [
+   let intention (item 0 intentions)
+   if intention = "get-schedule" [ execute-get-schedule ]
+   if intention = "bid" [ execute-bid ]
+   if intention = "assign-new-buses" [ execute-assign-new-buses ]
+   if intention = "send-initial-schedules" [ execute-send-initial-schedules ]
+   if intention = "drop-passengers" [ execute-drop-passengers ]
+   if intention = "check-stop" [ execute-check-stop ]
+   if intention = "check-restart" [ execute-check-restart ]
+   if intention = "pick-passengers" [ execute-pick-passengers ]
+   if intention = "check-amount-people" [ execute-check-amount-people ]  
+   if is-number? intention [ execute-travel ]
+  
+   set prev_int_len int_len
+   set int_len (length intentions)  
   ]
 end

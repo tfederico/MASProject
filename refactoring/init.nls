@@ -43,6 +43,8 @@ to init-local-vars
     set last_created_bus 24
     set last_created_bus_tick ticks
     set total_capacity (get-capacity-from-type bus_type) 
+    set bid_list []
+    set bus_to_allocate []
   ]
   
   ; initialize the intentions

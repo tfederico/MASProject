@@ -30,6 +30,13 @@ to wrap-add-bus [t]
   set last_created_bus_tick ticks
   ; Update the total capacity of the buses stored by the coordinator
   set total_capacity (total_capacity + (get-capacity-from-type t))
+  ; Add the new bus to the list of buses that have to be allocated
+  if not member? last_created_bus scouts and not member? last_created_bus local_coordinators [
+    let new_bus []
+    set new_bus lput last_created_bus new_bus
+    set new_bus lput t new_bus
+    set bus_to_allocate lput new_bus bus_to_allocate 
+  ]
 end
 
 ; Return the capacity of the bus type t
@@ -139,8 +146,6 @@ to-report get-nearest-joint [ destination ]
     let js get-joints beliefs s
     foreach js [ pos -> set joints lput pos joints ]
   ]
-  show schedules-with-destination
-  show joints
   let nearest_joint -1
   let distance_nearest_joint 1000000
   foreach joints [ j ->
@@ -176,7 +181,6 @@ to-report create-buses-from-diff [ diff ]
   let d 0
   ; This boolean value represents the creation of new buses. Right now, when entering in this function, at least one bus is created, so the boolean is already true.
   ; If the logic will change in the future, the management of this value will need to be changed accordingly
-  let created true
   ifelse diff > get-capacity-from-type 2 [
     wrap-add-bus 3  
     set d (diff - get-capacity-from-type 3) 
@@ -189,16 +193,99 @@ to-report create-buses-from-diff [ diff ]
       set d (diff - get-capacity-from-type 1)  
     ]
   ]
-  ; If at least a new bus is created, send a bid request to the local coordinators: in this way, an auction will determine the area of the new buses
-  if created [ send-bid-requests ]
   report d
 end
 
 ; Send a bid request to the local coordinators, except the coordinator.
 to send-bid-requests
+  ; Delete old bids
+  set bid_list []
   foreach local_coordinators [ lc ->
    if lc != coordinator [
      send-message lc "bid-request "  
    ]
   ]
+end
+
+; Return the number of people waiting in the area of a specific bus
+to-report get-people-waiting-in-my-area
+  let people 0
+  foreach beliefs [ b_stop ->
+    let waiting_passengers get-passengers-at-stop b_stop
+    ; removing people in joints that are not travelling to my area
+    set waiting_passengers (filter [p -> (member? (item 1 p) beliefs) or (not at-joint-position p and not member? (item 1 p) beliefs)] waiting_passengers)
+    set waiting_passengers (filter [p -> is-correct-direction (item 1 p)] waiting_passengers)
+    set people (people + length waiting_passengers)
+  ]
+  report people
+end
+
+; Update the bid list with new bids
+to update-bid-list [ bid lc ]
+  let bid_item []
+  set bid_item lput lc bid_item
+  set bid_item lput bid bid_item
+  set bid_list lput bid_item bid_list
+end
+
+; Assign buses without allocation to the different areas, based on the bids of the local coordinators
+to assign-buses
+  let bids bid_list
+  let my_bid []
+  set my_bid lput coordinator my_bid
+  set my_bid lput get-people-waiting-in-my-area my_bid
+  set bids lput my_bid bids
+  while [ not empty? bus_to_allocate ] [
+    let big_buses filter [b -> item 1 b = 3] bus_to_allocate
+    let medium_buses filter [b -> item 1 b = 2] bus_to_allocate
+    let little_buses filter [b -> item 1 b = 1] bus_to_allocate
+    
+    let pos -1
+    let bus_t -1
+    ifelse not empty? big_buses [
+     set pos (position (item 0 big_buses) bus_to_allocate)
+     set bus_t 3
+    ][
+     ifelse not empty? medium_buses [
+       set pos (position (item 0 medium_buses) bus_to_allocate)
+       set bus_t 2
+     ][
+       set pos (position (item 0 little_buses) bus_to_allocate)
+       set bus_t 1
+     ] 
+    ]
+    
+    let max_bid_pos (max-bid-pos bids)
+    let max_bid_pos_id (item 0 (item max_bid_pos bids))
+    
+    let sched (get-schedule-id-from-local-coordinator-id max_bid_pos_id)
+    
+    send-message (item 0 (item pos bus_to_allocate)) (word "schedule " sched)
+    set bus_to_allocate (remove (item pos bus_to_allocate) bus_to_allocate)
+    let new_elem []
+    set new_elem lput (item 0 (item max_bid_pos bids)) new_elem
+    set new_elem lput (item 1 (item max_bid_pos bids) - (get-capacity-from-type bus_t)) new_elem
+
+    set bids (remove (item max_bid_pos bids) bids)
+    set bids (insert-item max_bid_pos bids new_elem)
+  ]
+end
+
+; Return the position in the bids list of the bid with the highest value
+to-report max-bid-pos [bids]
+  let max_bid -1000000
+  let max_bid_pos -1
+  foreach bids [ b ->
+   if (item 1 b) > max_bid [
+     set max_bid (item 1 b)
+     set max_bid_pos (position b bids)   
+   ]
+  ]
+  report max_bid_pos
+end
+
+; Return the schedule id based on the id of the local coordinator
+to-report get-schedule-id-from-local-coordinator-id [id]
+  let direction round (random-float 1)
+  report (id mod 4) + direction * 4
 end
