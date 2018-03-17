@@ -47,11 +47,20 @@ to execute-drop-passengers
   set intentions butfirst intentions
 end
 
+; Check whether the bus can stop or not in order to save money
 to execute-check-stop
+  ; 1) Every kind of bus (i.e., every role) stops if there are no more people waiting in its area and the bus is empty
+  ; 2) The simple buses stops if they are empty and they reach a station which is also empty
+  
+  let people-waiting-in-area get-people-waiting-in-my-area
+  let is-empty (get-available-spots = get-capacity-from-type bus_type)
+  
   set intentions butfirst intentions
 end
 
+; Check wheter the bus has to restart after stopping
 to execute-check-restart
+  ; 1) Every kind of bus (i.e., every role) restarts if there are people waiting in its area
   set intentions butfirst intentions
 end
 
@@ -75,7 +84,6 @@ to execute-travel
   let intention (item 0 intentions)
   ifelse current_stop = intention [ 
     set intentions butfirst intentions
-    show intentions
   ] [
     travel-to intention
   ]

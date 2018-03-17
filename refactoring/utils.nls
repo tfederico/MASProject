@@ -46,7 +46,6 @@ to slide-beliefs
   let tmp (item 0 beliefs)
   set beliefs (but-first beliefs)
   set beliefs lput tmp beliefs
-  show "beliefs slided"
 end
 
 ; Return the schedule of id sched_id
@@ -135,14 +134,11 @@ end
 ; Given a destination not in this schedule, return the nearest joint position to reach the area that has that destination
 to-report get-nearest-joint [ destination ]
   let schedules-with-destination (get-schedules-with-stop destination)
-  show beliefs
   let joints []
   foreach schedules-with-destination [ s ->
     let js get-joints beliefs s
     foreach js [ pos -> set joints lput pos joints ]
   ]
-  show schedules-with-destination
-  show joints
   let nearest_joint -1
   let distance_nearest_joint 1000000
   foreach joints [ j ->
@@ -170,4 +166,17 @@ to-report get-joints [schedule_1 schedule_2]
   ]
   if not member? 3 joints [set joints lput 3 joints]
   report joints
+end
+
+; Return the number of people waiting in the area of a specific bus
+to-report get-people-waiting-in-my-area
+  let people 0
+  foreach beliefs [ b_stop ->
+    let waiting_passengers get-passengers-at-stop b_stop
+    ; removing people in joints that are not travelling to my area
+    set waiting_passengers (filter [p -> (member? (item 1 p) beliefs) or (not at-joint-position p and not member? (item 1 p) beliefs)] waiting_passengers)
+    set waiting_passengers (filter [p -> is-correct-direction (item 1 p)] waiting_passengers)
+    set people (people + length waiting_passengers)
+  ]
+  report people
 end
