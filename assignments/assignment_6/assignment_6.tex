@@ -30,10 +30,10 @@ The current version has a competition strategy implemented, where buses bid for 
 
 Our transportation system is divided into four areas that each have a bus assigned as a coordinator for this area. These four coordinators ("local coordinators"), have the responsibility to check whether the amount of passengers waiting in their area does not rise above a certain threshold. One of these coordinators, the "global coordinator", also performs this check for the four areas altogether. This global coordinator creates new buses based on this global check if necessary. 
 \newline
-This is when the bidding happens. When a global coordinator creates a new bus, it sends a message to the other buses to bid. They check the difference between the amount of people waiting in their area and the local fleet capacity, and send this difference as a bidding message to the new bus. The new bus takes on the schedule of the local coordinator with the highest bid, or the largest necessaty for a new bus.
+This is when the bidding happens. When a global coordinator creates a new bus, it sends a message to the other buses to bid. They check the difference between the amount of people waiting in their area and the local fleet capacity, and send this difference as a bidding message to the global coordinator. The global coordinator checks which bid is the highest, i.e. which local coordinator is in most need of a new bus. It assigns the new bus to the area of the local coordinator with the higest bid. The new bus takes on the schedule of this new area.
 
 \section{Parameter tuning}
-
+We performed some parameter tuning in order to lower or model expenses.
 -
 
 \section{Roles}
