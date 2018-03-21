@@ -23,7 +23,7 @@ to init-local-vars
   ; Initialize the super coordinator
   set coordinator 24
   ; Initialize the list of scouts
-  set scouts [28 29 30 31 ]
+  set scouts [28 29 30 31 32 33 34 36 37]
   ; At the beginning, the bus does not have a schedule and it is not moving
   set running false
   ; Local cooordinators-specific vars 
@@ -96,5 +96,5 @@ to create-first-buses
     if coordinator != lc [ wrap-add-bus initial_local_coordinator_type ]
   ]
   ; Create the scouts
-  foreach scouts [ s -> wrap-add-bus initial_scout_type ]  
+  foreach scouts [ s -> wrap-add-bus initial_scout_type ]
 end

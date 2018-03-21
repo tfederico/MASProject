@@ -57,7 +57,7 @@ end
 
 ; Return the schedule of id sched_id
 to-report get-schedule-from-id [ sched_id ]
-  let s (item sched_id schedules)
+  let s (item (sched_id mod (length schedules)) schedules)
   ; Add the stop 3 at the end. The original schedule are not comprehensive of the starting point central station
   set s lput 3 s
   report s
@@ -359,11 +359,7 @@ end
 
 ; Return the schedule id based on the id of the local coordinator
 to-report get-schedule-id-from-local-coordinator-id [id]
-<<<<<<< HEAD
   report (id mod (length local_coordinators))
-=======
-  let direction round (random-float 1)
-  report (id mod 4) + direction * 4
 end
 
 ; Return TRUE if the bus should move, False otherwise, based on the stop conditions
@@ -386,5 +382,4 @@ to-report should-move
   ]
   
   report should_move
->>>>>>> 024b7ce7ca8c51d1674a6ba910e1541ee286697f
 end
