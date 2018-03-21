@@ -97,7 +97,7 @@ to execute-check-amount-people
     let diff (amount_passengers_waiting - total_capacity)
     let d diff
     ; While we do not have enough buses to manage the danger situation, create new buses
-    while [ diff > 0] [ 
+    while [ diff > 50] [ 
       set diff (create-buses-from-diff diff) 
     ]
     ; If I have created new buses, send a bid request
