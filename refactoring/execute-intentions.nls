@@ -13,8 +13,7 @@ to execute-get-schedule
    ]  
   ]
   ; If we managed to obtain a schedule, add the end station of the schedule and remove the intention of getting a schedule
-  if not empty? beliefs [ 
-    ;set beliefs lput 3 beliefs 
+  if not empty? beliefs [  
     set intentions butfirst intentions 
     set running true
   ]
