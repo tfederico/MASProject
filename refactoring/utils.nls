@@ -67,8 +67,14 @@ end
 
 ; True if the passenger is at a joint position that allows him to reach the area of his destination, False otherwise
 to-report at-joint-position [ passenger ]
-  let destination_areas (filter [schedule -> not (are-the-same-schedule schedule beliefs)] (get-schedules-with-stop (item 1 passenger)))  
-  report member? current_stop destination_areas 
+  ; From the list of all the schedules containing the destination of the passenger, remove my schedule
+  let destination_areas (filter [schedule -> not (are-the-same-schedule schedule beliefs)] (get-schedules-with-stop (item 1 passenger))) 
+  ; Check whether the current stop is contained in one of the destination areas, i.e., we are in a joint position that allow the passenger to reach his destination
+  let is-joint false
+  foreach destination_areas [ da ->
+    if member? current_stop da [ set is-joint true ]
+  ]
+  report is-joint
 end
 
 ; Get the list of schedules with the bus stop s
@@ -76,7 +82,9 @@ to-report get-schedules-with-stop [ s ]
   let scheds []
   let index 0
   while [ index < ((length schedules) / 2)] [
-    if member? s (item index schedules) or s = 3 [ set scheds lput (item index schedules) scheds ]
+    let sched (item index schedules)
+    set sched lput 3 sched
+    if member? s sched [ set scheds lput sched scheds ]
     set index (index + 1)
   ]
   report scheds
@@ -97,7 +105,7 @@ to-report are-the-same-schedule [ schedule_1 schedule_2 ]
   report same  
 end
 
-; Return true if the passengers is in the area of his destination or if he is not but he is in a joint position
+; Return true if the passengers is in the area of his destination or if he is not but he is not in a joint position
 to-report need-to-pick [ p ]
   report destination-in-my-area p or ((not destination-in-my-area p) and (not at-joint-position p))
 end
@@ -116,11 +124,15 @@ end
 ; Return true if the passenger's destination is closer to this schedule compared to the reverse one
 to-report is-correct-direction [ destination ]
   let schedule beliefs
+  ; If the destination is not in the schedule, we need to drop the passenger in the nearest join position with the schedule of the destination
   if not member? destination schedule [
    set destination (get-nearest-joint destination) 
   ]
+  ; Get the distance of reaching the destination using the current schedule
   let distance_with_this_schedule (compute-distance schedule destination (length schedule - 1))
-  let distance_with_reverse_schedule (compute-distance (reverse schedule) destination 0)  
+  ; Get the distance of reaching the destination using the reverse schedule
+  let distance_with_reverse_schedule (compute-distance (reverse schedule) destination 0)
+  ; Return true if the distance using this schedule is less or equal to the distance using the reverse schedule
   report distance_with_this_schedule <= distance_with_reverse_schedule
 end
 
@@ -130,9 +142,13 @@ to-report compute-distance [ schedule destination index-current-stop ]
   let index index-current-stop
   let found false
   let l (length schedule)
+  ; Loop until getting the destination
   while [ not found ] [
+   ; Set to true when retrieving the destination
    set found (item ((index + 1) mod l) schedule) = destination
+   ; Add to the total distance the distance between the stop index to the stop index + 1
    set d (d + (get-distance (item (index mod l) schedule) (item ((index + 1) mod l) schedule)))
+   set d (d + 1)
    set index (index + 1)
   ]
   report d
