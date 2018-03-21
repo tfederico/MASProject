@@ -58,6 +58,7 @@ end
 ; Return the schedule of id sched_id
 to-report get-schedule-from-id [ sched_id ]
   let s (item sched_id schedules)
+  ; Add the stop 3 at the end. The original schedule are not comprehensive of the starting point central station
   set s lput 3 s
   report s
 end
@@ -69,7 +70,6 @@ end
 
 ; True if the passenger is at a joint position that allows him to reach the area of his destination, False otherwise
 to-report at-joint-position [ passenger ]
-
   ; From the list of all the schedules containing the destination of the passenger, remove my schedule
   let destination_areas (filter [schedule -> not (are-the-same-schedule schedule beliefs)] (get-schedules-with-stop (item 1 passenger))) 
   ; Check whether the current stop is contained in one of the destination areas, i.e., we are in a joint position that allow the passenger to reach his destination
@@ -80,10 +80,11 @@ to-report at-joint-position [ passenger ]
   report is-joint
 end
 
-; Get the list of schedules with the bus stop s
+; Get the list of areas with the bus stop s
 to-report get-schedules-with-stop [ s ]
   let scheds []
   let index 0
+  ; We can iterate until length schedules / 2 because the other schedules are only the reverse version of the firsts (hence, they are composed out of the same stops)
   while [ index < ((length schedules) / 2)] [
     if member? s (get-schedule-from-id index) [ set scheds lput (get-schedule-from-id index) scheds ]
     set index (index + 1)
@@ -91,12 +92,16 @@ to-report get-schedules-with-stop [ s ]
   report scheds
 end
 
-; Check whether two schedules are the same
+; Check whether two schedules are the same (they have the same length and the same bus stops. The order of the bus stops is not considered, e.g., a schedule and 
+; the reverse of it are considered the same schedule)
 to-report are-the-same-schedule [ schedule_1 schedule_2 ]
+  ; Assume that the two schedules are the same
   let same true
+  ; If the two schedules have a different length, the assumption is wrong
   ifelse length schedule_1 != length schedule_2 [ 
     set same false 
   ][
+    ; If the two schedules do not contain exactly the same bus stops, the assumption is wrong
     let index 0
     while  [ same and index < length schedule_1 ] [
      set same (member? (item index schedule_1) schedule_2) 
@@ -106,7 +111,7 @@ to-report are-the-same-schedule [ schedule_1 schedule_2 ]
   report same  
 end
 
-; Return true if the passengers is in the area of his destination or if he is not but he is not in a joint position
+; Return true if the passengers is in the area of his destination or if he is not and he is not in a joint position
 to-report need-to-pick [ p ]
   report destination-in-my-area p or ((not destination-in-my-area p) and (not at-joint-position p))
 end
@@ -171,20 +176,28 @@ end
 
 ; Given a destination not in this schedule, return the nearest joint position to reach the area that has that destination
 to-report get-nearest-joint [ destination start_index]
+  if member? destination beliefs [ show "# WARNING: get-nearest-joint is called with a destination that is in the schedule of the agent "]
+  
+  ; Get the list of schedules containing the destination
   let schedules-with-destination (get-schedules-with-stop destination)
   let joints []
+  ; Iterate over the schedules with the destination
   foreach schedules-with-destination [ s ->
+    ; Get the joint positions between the agent schedule and s
     let js get-joints beliefs s
+    ; Add all the retrieved joint positions to the list of joint positions
     foreach js [ pos -> set joints lput pos joints ]
   ]
+  ; Start computing the nearest joint position from the list
   let nearest_joint -1
   let distance_nearest_joint 1000000
+  ; Iterate over the list of joint positions
   foreach joints [ j ->
     let d (compute-distance beliefs j start_index)
+    ; if j is the nearest joint position found until now, set the variables accordingly
     if d < distance_nearest_joint [
      set distance_nearest_joint d
      set nearest_joint j
-     
     ]
   ]
     
@@ -202,7 +215,7 @@ to-report get-joints [schedule_1 schedule_2]
   report joints
 end
 
-; Takes as a parameter a danger measure (the differene between the total capacity of the bus fleet and the number of people waiting) and create new buses
+; Takes as a parameter a danger measure (the difference between the total capacity of the bus fleet and the number of people waiting) and create new buses
 ; accordingly. It returns the updated diff
 to-report create-buses-from-diff [ diff ]
   let d 0
@@ -346,5 +359,32 @@ end
 
 ; Return the schedule id based on the id of the local coordinator
 to-report get-schedule-id-from-local-coordinator-id [id]
+<<<<<<< HEAD
   report (id mod (length local_coordinators))
+=======
+  let direction round (random-float 1)
+  report (id mod 4) + direction * 4
+end
+
+; Return TRUE if the bus should move, False otherwise, based on the stop conditions
+to-report should-move
+  ; 1) Every kind of bus (i.e., every role) stops if there are no more people waiting in its area and the bus is empty
+  
+  ; Retrieve the number of people waiting in the area of the agent
+  ; let people-waiting get-people-waiting-in-my-direction
+  let people-waiting get-people-waiting-in-my-area
+  ; Check whether the bus is empty
+  let is-empty (get-available-spots = get-capacity-from-type bus_type)
+  
+  let should_move true
+  ; A bus can stop only if it is empty
+  if is-empty [
+   ; Check condition 1) 
+   if people-waiting = 0 [
+      set should_move false 
+    ]
+  ]
+  
+  report should_move
+>>>>>>> 024b7ce7ca8c51d1674a6ba910e1541ee286697f
 end
