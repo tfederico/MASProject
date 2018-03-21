@@ -84,7 +84,8 @@ to update-intentions
        let bid extract-message m
        set bid read-from-string bid
        update-bid-list bid (item 1 msg)
-       set intentions fput "assign-new-buses" intentions
+       if not member? "assign-new-buses" intentions [ set intentions fput "assign-new-buses" intentions ]
+       
       ]
      
       if header = "bid-request" [

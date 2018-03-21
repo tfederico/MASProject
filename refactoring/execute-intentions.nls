@@ -74,7 +74,7 @@ end
 ; Pick all the passengers that are convenient to pick up, considering the direction of the bus and the passenger destination
 to execute-pick-passengers
   foreach get-passengers-at-stop current_stop [ passenger ->
-    if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [
+    if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger) (length beliefs - 1))) [
      pick-up-passenger (item 0 passenger) 
     ]
   ]
@@ -114,7 +114,13 @@ end
 to execute-bid
   ; As a first instance, we are using as bid a danger situation for the area, that is the number of people waiting in my area
   let bid get-people-waiting-in-my-area
-  send-message coordinator (word "bid " bid)  
+  ; Calculate people in the two directions
+  let bid_1 get-people-waiting-in-my-direction
+  let bid_2 (bid - bid_1)
+  set bid []
+  set bid lput bid_1 bid
+  set bid lput bid_2 bid
+  send-message coordinator (word "bid " bid)
   set intentions butfirst intentions
 end
 
