@@ -1,20 +1,24 @@
 ; Execute the action get-schedule: the agent needs to retrieve its schedule
 to execute-get-schedule 
   ifelse is-at-least-role "coordinator" [
+   ; If the agent is the coordinator, it gets the first schedule
    set beliefs (get-schedule-from-id 0)
   ][
-   ; The bus is not a coordinator
+   ; The bus is not a coordinator. Thus, the schedule will be assigned from a message by the coordinator
    ; Get the list of messages regarding the schedules
    let msgs (get-msgs-with-header-id (inbox) 0)
    ; If we received the schedule, assign it to the bus
    if not empty? msgs [
+    ; Read the id of the schedule from the message
     let sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
+    ; Set the schedule to the beliefs
     set beliefs (get-schedule-from-id sched_id)  
    ]  
   ]
-  ; If we managed to obtain a schedule, add the end station of the schedule and remove the intention of getting a schedule
+  ; If we managed to obtain a schedule, remove the intention of getting a schedule
   if not empty? beliefs [  
     set intentions butfirst intentions 
+    ; Setting running to true means that the bus has to move. When the bus will stop, it will set running to false
     set running true
   ]
 end
@@ -24,23 +28,28 @@ to execute-send-initial-schedules
   let index 1
   ; Send the schedules to the local coordinators
   foreach local_coordinators [ lc ->
+    ; The coordinator is also a local coordinator, but it does not need to get a message for the schedule
     if coordinator != lc [
+      ; Send the id of the schedule as a message
       send-message lc (word "schedule " index)
       set index (index + 1)
     ]
   ]
   ; Send the schedules to the scouts
   foreach scouts [ s ->
+    ; Send the id of the schedule as a message
     send-message s (word "schedule " index)
     set index (index + 1)
   ]
+  ; Remove the intention of sending the initial schedules to the local coordinators and to the scouts
   set intentions butfirst intentions
 end
 
 ; The bus drops all the passengers that are in their destination (or the passengers that needs to go to another schedule and the current stop is a joint position)
 to execute-drop-passengers
-  ; Get the list of arrived passengers and drop them
+  ; Get the list of passengers for which the current stop is their destinations or is a joint position with the area of their destinations
   let arrived_passengers (filter [ passenger -> (at-destination passenger or at-joint-position passenger)] bus_passengers)
+  ; Drop all the passengers that are arrived
   foreach arrived_passengers [ passenger -> drop-off-passenger (item 0 passenger) ]
   ; Remove the intentions from the list
   set intentions butfirst intentions
@@ -48,38 +57,35 @@ end
 
 ; Check whether the bus can stop or not in order to save money
 to execute-check-stop
-  ; 1) Every kind of bus (i.e., every role) stops if there are no more people waiting in its area and the bus is empty
-  ; 2) The simple buses stops if they are empty and they reach a station which is also empty
-  
-  let people-waiting-in-area get-people-waiting-in-my-area
-  let is-empty (get-available-spots = get-capacity-from-type bus_type)
-  
-  if (people-waiting-in-area = 0 and is-empty) or (is-empty and role = "simple" and get-passengers-at-stop current_stop = 0)[
-   set running false 
+  if should-move = false [
+    set running false
   ]
   set intentions butfirst intentions
 end
 
 ; Check wheter the bus has to restart after stopping
 to execute-check-restart
-  ; 1) Every kind of bus (i.e., every role) restarts if there are people waiting in its area
-  let people-waiting-in-area get-people-waiting-in-my-area
-  if people-waiting-in-area != 0 [
+  if should-move = true [
    set running true
-   set intentions butfirst intentions 
-  ]
-  
+   set intentions butfirst intentions
+  ] 
 end
+
 
 ; Pick all the passengers that are convenient to pick up, considering the direction of the bus and the passenger destination
 to execute-pick-passengers
+  ; Iterate over all the passengers at the current stop
   foreach get-passengers-at-stop current_stop [ passenger ->
+    ; If the passenger need to be picked up (it could be that the passenger has to go to a different area and it is already in a joint position to that area)
+    ; If the bus has some available spots
+    ; If, considering the destination of the passenger, it is convenient to pick him up following the current direction of the bus
+    ; Pick up the passenger
     if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [
      pick-up-passenger (item 0 passenger) 
     ]
   ]
   
-  ; Remove the intentions from the list
+  ; Remove the intention from the list
   set intentions butfirst intentions
 end
 

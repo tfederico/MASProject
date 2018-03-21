@@ -45,13 +45,14 @@ to init-buses
   init-local-vars
 end
 
+; Add decision making strategies for your agents here.
+; You are allowed to use the global variable 'ticks'.  
 to execute-actions
   ; The first buses cannot be created in the init-buses by design. The coordinator should create the local coordinators and the scouts now
   if ticks = 2 and (is-at-least-role "coordinator") [
     create-first-buses
   ]
-  ; Add decision making strategies for your agents here.
-  ; You are allowed to use the global variable 'ticks'.
+  
   ; Update the beliefs (schedule)
   update-beliefs
   ; Update the intentions
@@ -80,21 +81,29 @@ to update-intentions
      let m (item 2 msg)
      let header (extract-header m)
       
+      ; If the message is a bid (only the coordinator can receive a bid message), it means that the msg is an answer to the bid-request message of the coordinator
       if header = "bid" [
        let bid extract-message m
        set bid read-from-string bid
+       ; Update the list of bids with the new bid
        update-bid-list bid (item 1 msg)
+       ; Add the intentions of assign the new buses to the different areas, based on the bids of the local coordinators of the areas
        set intentions fput "assign-new-buses" intentions
       ]
      
+      ; If the message is a bid-request, it means that the coordinator is trying to assign new buses to the different areas: thus,
+      ; it sends a bid-request in order to get the bids from the different local coordinators
       if header = "bid-request" [
+        ; Add the intention of preparing a bid and send it to the coordinator
         set intentions fput "bid" intentions
      ]    
    ]
     
-   ; If the agent is the coordinator, send a message to the local coordinators and to the scouts with the schedule that they should follow
+   ; If the agent is the coordinator, send a message to the local coordinators and to the scouts with the schedule that they should follow.
+   ; This intention is performed at the beginning, when the initial local coordinators and scouts are created
    if is-at-least-role "coordinator" and ticks = 3 [
      set intentions lput "send-initial-schedules" intentions
+     ; After the above intention, the buses are ready to start. Thus, the coordinator can add the intentions of mananging the first bus stop of his schedule
      add-current-stop-intention
    ]
     
