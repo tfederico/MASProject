@@ -56,8 +56,10 @@ to slide-beliefs
 end
 
 ; Return the schedule of id sched_id
-to-report get-schedule-from-id-without-three [ sched_id ]
-  report (item sched_id schedules)
+to-report get-schedule-from-id [ sched_id ]
+  let s (item sched_id schedules)
+  set s lput 3 s
+  report s
 end
 
 ; True if the passenger is at the destination, false otherwise
@@ -67,8 +69,12 @@ end
 
 ; True if the passenger is at a joint position that allows him to reach the area of his destination, False otherwise
 to-report at-joint-position [ passenger ]
-  let destination_areas (filter [schedule -> not (are-the-same-schedule schedule beliefs)] (get-schedules-with-stop (item 1 passenger)))  
-  report member? current_stop destination_areas 
+  let destination_areas (filter [s -> not (are-the-same-schedule s beliefs)] (get-schedules-with-stop (item 1 passenger)))
+  let is-joint false
+  foreach destination_areas [ da ->
+    if member? current_stop da [set is-joint true]
+  ]
+  report is-joint
 end
 
 ; Get the list of schedules with the bus stop s
@@ -76,7 +82,7 @@ to-report get-schedules-with-stop [ s ]
   let scheds []
   let index 0
   while [ index < ((length schedules) / 2)] [
-    if member? s (item index schedules) or s = 3 [ set scheds lput (item index schedules) scheds ]
+    if member? s (get-schedule-from-id index) [ set scheds lput (get-schedule-from-id index) scheds ]
     set index (index + 1)
   ]
   report scheds
@@ -156,9 +162,6 @@ to-report get-nearest-joint [ destination ]
      
     ]
   ]
-  if (nearest_joint = -1) [
-    set nearest_joint 3 ; 3 is always a joint
-  ]
     
   report nearest_joint
 end
@@ -171,7 +174,7 @@ to-report get-joints [schedule_1 schedule_2]
     if member? (item index schedule_1) schedule_2 [ set joints lput (item index schedule_1) joints ]
     set index (index + 1)
   ]
-  if not member? 3 joints [set joints lput 3 joints]
+  ;if not member? 3 joints [set joints lput 3 joints]
   report joints
 end
 
