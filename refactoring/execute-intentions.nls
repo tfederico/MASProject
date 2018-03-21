@@ -76,19 +76,14 @@ end
 to execute-pick-passengers
   ; Iterate over all the passengers at the current stop
   foreach get-passengers-at-stop current_stop [ passenger ->
-<<<<<<< HEAD
     if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger) (length beliefs - 1))) [
-=======
     ; If the passenger need to be picked up (it could be that the passenger has to go to a different area and it is already in a joint position to that area)
     ; If the bus has some available spots
     ; If, considering the destination of the passenger, it is convenient to pick him up following the current direction of the bus
     ; Pick up the passenger
-    if ((need-to-pick passenger) and get-available-spots > 0 and (is-correct-direction (item 1 passenger))) [
->>>>>>> 024b7ce7ca8c51d1674a6ba910e1541ee286697f
      pick-up-passenger (item 0 passenger) 
     ]
   ]
-  
   ; Remove the intention from the list
   set intentions butfirst intentions
 end
@@ -101,7 +96,7 @@ to execute-check-amount-people
     let diff (amount_passengers_waiting - total_capacity)
     let d diff
     ; While we do not have enough buses to manage the danger situation, create new buses
-    while [ diff > 50] [ 
+    while [ diff > 0] [ 
       set diff (create-buses-from-diff diff) 
     ]
     ; If I have created new buses, send a bid request
