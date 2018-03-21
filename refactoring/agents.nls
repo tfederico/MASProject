@@ -87,7 +87,10 @@ to update-intentions
        set bid read-from-string bid
        ; Update the list of bids with the new bid
        update-bid-list bid (item 1 msg)
+       ; Add the intentions of assign the new buses to the different areas, based on the bids of the local coordinators of the areas
        if not member? "assign-new-buses" intentions [ set intentions fput "assign-new-buses" intentions ]
+           
+
       ]
      
       ; If the message is a bid-request, it means that the coordinator is trying to assign new buses to the different areas: thus,

@@ -81,11 +81,9 @@ to execute-pick-passengers
     ; If the bus has some available spots
     ; If, considering the destination of the passenger, it is convenient to pick him up following the current direction of the bus
     ; Pick up the passenger
- 
      pick-up-passenger (item 0 passenger) 
     ]
   ]
-  
   ; Remove the intention from the list
   set intentions butfirst intentions
 end

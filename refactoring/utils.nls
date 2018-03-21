@@ -218,7 +218,7 @@ end
 ; Takes as a parameter a danger measure (the difference between the total capacity of the bus fleet and the number of people waiting) and create new buses
 ; accordingly. It returns the updated diff
 to-report create-buses-from-diff [ diff ]
-  let d 0
+  let d diff
   ; This boolean value represents the creation of new buses. Right now, when entering in this function, at least one bus is created, so the boolean is already true.
   ; If the logic will change in the future, the management of this value will need to be changed accordingly
   ifelse diff > get-capacity-from-type 2 [
@@ -233,6 +233,20 @@ to-report create-buses-from-diff [ diff ]
       set d (diff - get-capacity-from-type 1)  
     ]
   ]
+;  ifelse diff > 300 [
+;    wrap-add-bus 3  
+;    set d (diff - get-capacity-from-type 3) 
+;  ][
+;    ifelse diff > 200 [
+;      wrap-add-bus 2
+;      set d (diff - get-capacity-from-type 2) 
+;    ][
+;      if diff > 50 [
+;        wrap-add-bus 1
+;        set d (diff - get-capacity-from-type 1) 
+;      ]  
+;    ]
+;  ]
   report d
 end
 
@@ -366,9 +380,9 @@ end
 to-report should-move
   ; 1) Every kind of bus (i.e., every role) stops if there are no more people waiting in its area and the bus is empty
   
-  ; Retrieve the number of people waiting in the area of the agent
-  ; let people-waiting get-people-waiting-in-my-direction
-  let people-waiting get-people-waiting-in-my-area
+  ; Retrieve the number of people waiting in the direction of the agent
+  let people-waiting get-people-waiting-in-my-direction
+  ;let people-waiting get-people-waiting-in-my-area
   ; Check whether the bus is empty
   let is-empty (get-available-spots = get-capacity-from-type bus_type)
   
