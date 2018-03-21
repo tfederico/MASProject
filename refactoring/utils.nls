@@ -204,19 +204,33 @@ end
 ; Takes as a parameter a danger measure (the difference between the total capacity of the bus fleet and the number of people waiting) and create new buses
 ; accordingly. It returns the updated diff
 to-report create-buses-from-diff [ diff ]
-  let d 0
+  let d diff
   ; This boolean value represents the creation of new buses. Right now, when entering in this function, at least one bus is created, so the boolean is already true.
   ; If the logic will change in the future, the management of this value will need to be changed accordingly
-  ifelse diff > get-capacity-from-type 2 [
+;  ifelse diff > get-capacity-from-type 2 [
+;    wrap-add-bus 3  
+;    set d (diff - get-capacity-from-type 3) 
+;  ][
+;    ifelse diff > get-capacity-from-type 1 [
+;      wrap-add-bus 2
+;      set d (diff - get-capacity-from-type 2) 
+;    ][
+;      wrap-add-bus 1
+;      set d (diff - get-capacity-from-type 1)  
+;    ]
+;  ]
+  ifelse diff > 300 [
     wrap-add-bus 3  
     set d (diff - get-capacity-from-type 3) 
   ][
-    ifelse diff > get-capacity-from-type 1 [
+    ifelse diff > 200 [
       wrap-add-bus 2
       set d (diff - get-capacity-from-type 2) 
     ][
-      wrap-add-bus 1
-      set d (diff - get-capacity-from-type 1)  
+      if diff > 50 [
+        wrap-add-bus 1
+        set d (diff - get-capacity-from-type 1) 
+      ]  
     ]
   ]
   report d
