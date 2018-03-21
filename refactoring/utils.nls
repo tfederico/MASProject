@@ -127,17 +127,31 @@ to-report get-available-spots
   report (get-capacity-from-type bus_type) - (length bus_passengers)
 end
 
-; Return true if the passenger's destination is closer to this schedule compared to the reverse one
-to-report is-correct-direction [ destination ]
+;; Return true if the passenger's destination is closer to this schedule compared to the reverse one
+;to-report is-correct-direction [ destination ]
+;  let schedule beliefs
+;  ; If the destination is not in the schedule, we need to drop the passenger in the nearest join position with the schedule of the destination
+;  if not member? destination schedule [
+;   set destination (get-nearest-joint destination) 
+;  ]
+;  ; Get the distance of reaching the destination using the current schedule
+;  let distance_with_this_schedule (compute-distance schedule destination (length schedule - 1))
+;  ; Get the distance of reaching the destination using the reverse schedule
+;  let distance_with_reverse_schedule (compute-distance (reverse schedule) 0)
+;  ; Return true if the distance using this schedule is less or equal to the distance using the reverse schedule
+;  report distance_with_this_schedule <= distance_with_reverse_schedule
+;end
+
+to-report is-correct-direction [ destination start_index ]
   let schedule beliefs
   ; If the destination is not in the schedule, we need to drop the passenger in the nearest join position with the schedule of the destination
   if not member? destination schedule [
-   set destination (get-nearest-joint destination) 
+   set destination (get-nearest-joint destination start_index) 
   ]
   ; Get the distance of reaching the destination using the current schedule
-  let distance_with_this_schedule (compute-distance schedule destination (length schedule - 1))
+  let distance_with_this_schedule (compute-distance schedule destination start_index)
   ; Get the distance of reaching the destination using the reverse schedule
-  let distance_with_reverse_schedule (compute-distance (reverse schedule) destination 0)
+  let distance_with_reverse_schedule (compute-distance (reverse schedule) destination (length schedule - 1  - start_index))
   ; Return true if the distance using this schedule is less or equal to the distance using the reverse schedule
   report distance_with_this_schedule <= distance_with_reverse_schedule
 end
@@ -153,14 +167,15 @@ to-report compute-distance [ schedule destination index-current-stop ]
    ; Set to true when retrieving the destination
    set found (item ((index + 1) mod l) schedule) = destination
    ; Add to the total distance the distance between the stop index to the stop index + 1
-   set d (d + (get-distance (item (index mod l) schedule) (item ((index + 1) mod l) schedule)))
+   ;set d (d + (get-distance (item (index mod l) schedule) (item ((index + 1) mod l) schedule)))
+   set d d + 1
    set index (index + 1)
   ]
   report d
 end
 
 ; Given a destination not in this schedule, return the nearest joint position to reach the area that has that destination
-to-report get-nearest-joint [ destination ]
+to-report get-nearest-joint [ destination start_index]
   if member? destination beliefs [ show "# WARNING: get-nearest-joint is called with a destination that is in the schedule of the agent "]
   
   ; Get the list of schedules containing the destination
@@ -178,8 +193,7 @@ to-report get-nearest-joint [ destination ]
   let distance_nearest_joint 1000000
   ; Iterate over the list of joint positions
   foreach joints [ j ->
-    ; get the distance from the current position of the agent to j (the joint position) using the agent schedule
-    let d (compute-distance beliefs j (length beliefs - 1))
+    let d (compute-distance beliefs j start_index)
     ; if j is the nearest joint position found until now, set the variables accordingly
     if d < distance_nearest_joint [
      set distance_nearest_joint d
@@ -236,17 +250,6 @@ to-report create-buses-from-diff [ diff ]
   report d
 end
 
-; Send a bid request to the local coordinators, except the coordinator.
-to send-bid-requests
-  ; Delete old bids
-  set bid_list []
-  foreach local_coordinators [ lc ->
-   if lc != coordinator [
-     send-message lc "bid-request "  
-   ]
-  ]
-end
-
 ; Return the number of people waiting in the area of a specific bus
 to-report get-people-waiting-in-my-area
   let people 0
@@ -260,26 +263,87 @@ to-report get-people-waiting-in-my-area
   report people
 end
 
+; Return the number of people waiting in the area of a specific bus
+to-report get-people-waiting-in-my-direction
+  let people 0
+  let index 0
+  let b_stop 0
+  while [index < length beliefs][
+    set b_stop (item index beliefs)
+    let waiting_passengers get-passengers-at-stop b_stop
+    ; removing people in joints that are not travelling to my area
+    set waiting_passengers (filter [p -> (member? (item 1 p) beliefs) or (not at-joint-position p and not member? (item 1 p) beliefs)] waiting_passengers)
+    ; removing people that are not in the correct direction
+    set waiting_passengers (filter [p -> is-correct-direction (item 1 p) index] waiting_passengers)
+    set index index + 1
+    set people (people + length waiting_passengers)
+  ]
+  report people
+end
+
+; Send a bid request to the local coordinators, except the coordinator.
+to send-bid-requests
+  ; Delete old bids
+  set bid_list []
+  foreach local_coordinators [ lc ->
+   if lc != coordinator [
+     send-message lc "bid-request "  
+   ]
+  ]
+end
+
 ; Update the bid list with new bids
 to update-bid-list [ bid lc ]
-  let bid_item []
-  set bid_item lput lc bid_item
-  set bid_item lput bid bid_item
-  set bid_list lput bid_item bid_list
+  let bid_item_1 []
+  set bid_item_1 lput lc bid_item_1
+  set bid_item_1 lput (item 0 bid) bid_item_1
+  let bid_item_2 []
+  set bid_item_2 lput lc bid_item_2
+  set bid_item_2 lput (item 1 bid) bid_item_2
+  
+  let index 0
+  let found false
+  while [index < length bid_list and not found][
+    ifelse lc > item 0 (item index bid_list) [
+      set index index + 1
+    ] [
+     set found true 
+    ]
+  ]  
+  
+  ifelse not found [
+    set bid_list lput bid_item_1 bid_list
+    set bid_list lput bid_item_2 bid_list
+  ][
+    set bid_list (insert-item index bid_list bid_item_1)
+    set bid_list (insert-item (index + 1) bid_list bid_item_2)
+  ]
+end
+
+; Return the position in the bids list of the bid with the highest value
+to-report max-bid-pos [bids]
+  let max_bid -1000000
+  let max_bid_pos -1
+  foreach bids [ b ->
+   if (item 1 b) > max_bid [
+     set max_bid (item 1 b)
+     set max_bid_pos (position b bids)
+   ]
+  ]
+  report max_bid_pos
 end
 
 ; Assign buses without allocation to the different areas, based on the bids of the local coordinators
 to assign-buses
+  let my_bids []
+  set my_bids lput get-people-waiting-in-my-direction my_bids
+  set my_bids lput (get-people-waiting-in-my-area - get-people-waiting-in-my-direction) my_bids
+  update-bid-list my_bids coordinator
   let bids bid_list
-  let my_bid []
-  set my_bid lput coordinator my_bid
-  set my_bid lput get-people-waiting-in-my-area my_bid
-  set bids lput my_bid bids
   while [ not empty? bus_to_allocate ] [
     let big_buses filter [b -> item 1 b = 3] bus_to_allocate
     let medium_buses filter [b -> item 1 b = 2] bus_to_allocate
     let little_buses filter [b -> item 1 b = 1] bus_to_allocate
-    
     let pos -1
     let bus_t -1
     ifelse not empty? big_buses [
@@ -294,38 +358,24 @@ to assign-buses
        set bus_t 1
      ] 
     ]
-    
     let max_bid_pos (max-bid-pos bids)
     let max_bid_pos_id (item 0 (item max_bid_pos bids))
-    
-    let sched (get-schedule-id-from-local-coordinator-id max_bid_pos_id)
-    
+    let sched (get-schedule-id-from-local-coordinator-id max_bid_pos_id) + ((max_bid_pos mod 2) * length local_coordinators)
     send-message (item 0 (item pos bus_to_allocate)) (word "schedule " sched)
     set bus_to_allocate (remove (item pos bus_to_allocate) bus_to_allocate)
     let new_elem []
     set new_elem lput (item 0 (item max_bid_pos bids)) new_elem
     set new_elem lput (item 1 (item max_bid_pos bids) - (get-capacity-from-type bus_t)) new_elem
-
     set bids (remove (item max_bid_pos bids) bids)
     set bids (insert-item max_bid_pos bids new_elem)
   ]
 end
 
-; Return the position in the bids list of the bid with the highest value
-to-report max-bid-pos [bids]
-  let max_bid -1000000
-  let max_bid_pos -1
-  foreach bids [ b ->
-   if (item 1 b) > max_bid [
-     set max_bid (item 1 b)
-     set max_bid_pos (position b bids)   
-   ]
-  ]
-  report max_bid_pos
-end
-
 ; Return the schedule id based on the id of the local coordinator
 to-report get-schedule-id-from-local-coordinator-id [id]
+<<<<<<< HEAD
+  report (id mod (length local_coordinators))
+=======
   let direction round (random-float 1)
   report (id mod 4) + direction * 4
 end
@@ -350,4 +400,5 @@ to-report should-move
   ]
   
   report should_move
+>>>>>>> 024b7ce7ca8c51d1674a6ba910e1541ee286697f
 end
