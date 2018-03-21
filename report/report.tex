@@ -1,0 +1,94 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[colorinlistoftodos]{todonotes}
+
+\title{MAS report}
+\author{Emma Machielse, Federico Tavella, Alessandro Tezza}
+\date{\today}
+
+\begin{document}
+
+\maketitle Final Report MAS
+
+\todo[inline]{max 10 pages. \textbf{readability}; grammar, syntax, scientific style, reference fig and tables.\textbf{ completeness}; what is done, why and the results, motivation design choice, how does system work}
+
+\section{Introduction}
+We created a multi-agent transportation system for a bus network in Amsterdam. 
+Add some info from book \cite{multiagentsystems}.
+Add some info from other book \cite{intromultiagentsystems}.
+
+\section{Framework}
+We chose to organise our system according to the Belief-Desire-Intention architecture \cite{caillou2017simple}. This framework facilitates flexibility in generating actions, because an agent can have a choice of intentions that imply different actions to execute. It also results in agents having agreeable or conflicting goals, which makes room for social interaction. 
+\newline
+The desire part of our BDI framework is equal for all buses; transporting passengers. The belief part entails the knowledge the bus needs to fulfill this desire. This comes down to the route along which a bus can travel, which can differ for each bus. Finally the intentions are what drives the agent to execute actions to full the desire. Intentions are updated and changed, when the secondary actions are completed or when the scenario changes. The numerous intentions and secondary actions our system entails will be described for each of our implementation.
+
+\section{Conceptual description and strategy}
+This section explains the various agent concepts used, how they are designed and implemented, and along which strategies. Four types of costs shape our strategies, the amount of money spend, the average waiting time, the amount of messages send, and the amount of people waiting. Costs arise by travelling and buying more buses. To reduce costs, the buses need to transport travellers efficiently. The more passengers they can transport in the shortest amount of time, the lower our costs will be.
+
+\subsection{transportation and coordination}
+The system initially picked and dropped off passengers by travelling according to a single fixed schedule. This schedule combines the 24 stops into one cyclic path, passing each bus stop once each cycle.
+\paragraph{different fixed schedules}
+In order to reduce the amount of time a passenger spends in a bus, we split the schedule into four different areas.
+They can be classified under the labels "West", "North", "Center" and "East". These four routes are shorter which brings two advantages. A bus has to complete a shorter distance before passing the same stop again, so waiting time will be reduced. The time that a traveller spends in the bus will be shorter, which will reduce chances of buses being full and unable to pick up other travellers.
+\newline
+This solution does require transferring, which reduces the advantages explained before a little. Transfer passengers will have to wait at two bus stops before reaching their destination. To enable transportation of people between bus stops in different schedules, we created a transfer station. Stop 3 (\texttt{Centraal}), is a shared stop for all four schedules. If a bus picks up a passenger with a destination that is not in its schedule, it drops the passenger off at the shared stop. At the shared stop, buses only pick up passengers with a destination that is in their schedule. 
+\paragraph{Direction-based pick up}
+We created a bidirectional version of each schedule. This will ensure that passengers won't be picked up by a bus,  that needs to complete a large distance before reaching their destination. This increases transportation efficiency, since buses carry passengers for a shorter amount of time and are thus able to carry more passengers. 
+\newline
+Each bus picks up only the passengers whose destination is closer in its schedule compared to the reverse one. If this is not the case, the passengers are waiting for a bus moving in the opposite direction. In this way, we try to minimize the travelling time of the passengers. 
+\newline
+We ensured an even distribution of the buses in the two directions, to make sure waiting time does not rise too much when travellers need to wait for a bus in their direction. Buses created with an odd ID are moving along the \textit{reverse version} of the schedule for their area.
+
+\subsection{roles}
+\paragraph{Roles of responsibility}
+Two roles that are created to selectively assign responsibilities to agents, are global and local coordinator. The first created bus with \texttt{ID = 24} is the \textit{global coordinator}, responsible for assigning roles to other buses and adding buses. The \textit{local coordinator} is responsible for one of the four areas. The \textit{global coordinator} is assigned to the "Centre", whereas the buses with \texttt{ID = 25, 26 and 27} are responsible for "West", "East" and "North" in this order.
+\newline
+\todo[inline]{We selectively assigned responsibilities because...}
+\paragraph{Roles for behaviour}
+The roles that can be assigned to the other buses through communication are "scout" and "simple". The roles define the \textit{behaviour} of a bus. In this way, we can easily change the behaviour of a bus by changing its role (promotion/demotion). This will make sure that the behaviour of the bus is adaptive to a changing environment. In the context of the transportation system, it implies that behaviour changes based on the amount and spread of people waiting.
+\newline
+Simple buses adhere to a rule of having to stop moving whenever they are empty and they reach an empty bus stop. All buses stop moving, despite their roles, if no people are waiting. Once a bus has delivered every passengers and reaches an empty bus stop - if its role permits it - it does not move anymore. This is useful when the passengers waiting for a bus are not a lot and the situation can be managed by other buses. In this way, we can decrease the travelling costs.
+\newline
+A scout is always moving and it is not allowed to stop and wait. We need to make sure that some buses are continuously travelling, so when the amount of passengers waiting is low, and most buses stopped to save travel costs, the few people left will still be picked up.
+\subsection{adding buses}
+The firstly created agent was responsible of creating new buses based on the amount of people waiting at the bus stops and the total capacity of the bus fleet. The ability to add buses is allocated solely to the initial bus in the scenario, with bus id 24. Otherwise, if all the buses could request new buses, than each bus would check for capacity shortage at each tick: as a consequence, unnecessary bus would be added. 
+\newline
+The amount of people waiting is taken into consideration, by adding buses based on this number. We reduced the amount of people waiting and the waiting time somewhat by adding buses. When the total capacity of buses is lower than the total amount of people waiting, new buses are added. The type of the new bus is chosen based on the number of people waiting: the cheaper bus type that can manage the amount of waiting people is added.
+
+\subsection{communication}
+\paragraph{ontology}
+To take into account the possibility of messages with different purpose, we defined a basic ontology for communication: \texttt{"message\_type content"}. Where  \texttt{message\_type} is the header of the message. The header is a string that described the subject of the message to indicate the information the message contains. Then \texttt{content} contains the effective content of the message. For example, if we want to promote a bus to the role \textit{scout}, the message would be in the form \texttt{"promotion scout"}. We implemented this ontology, so that buses know how what to use the content of the message for, based on the header. 
+\paragraph{communication for promotion}
+Communication is used in order to enable the global coordinator to promote and demote the roles of buses. Every time a bus reaches a bus stop, it checks the incoming messages. It can retrieve the new messages from the inbox history comparing the ticks of the messages with a \textit{locally stored variable} that represents the last time (i.e., last tick) in which the agent checked the messages. The content of a message is a string that represents an action to do or an information request. At the moment, the \textit{coordinator} (that locally keeps track of the created buses and their capacity) can send a ``promotion" message to the other buses: every \textit{simple} bus that receives it becomes a \textit{scout}. In this way, the \textit{coordinator} can check for critic situations using its own local information and manage them ordering to the other buses to never stop (i.e., to be \textit{scouts}). Once the danger situation has been managed, the \textit{coordinator} can send other messages to remove the demote the buses. Consequently, they are allowed to stop and wait (i.e., their role change from \textit{scout} to \textit{simple})
+\paragraph{communication local variable}
+Unfortunately bus 24 is not aware of the amount of occupied spots in each bus and can therefore only estimate how many buses are needed. To solve this, a communication system between the buses needs to be implemented. The costs of the buses are not taken into consideration when adding buses. Also, in the current system rush hours may lead to excessive bus adding and costly empty buses later on. The current solution is thus not cost effective yet.
+\paragraph{goals communication}
+We made use of message exchanging to enable the buses to switch roles and thus behaviour, based on the messages they receive. We defined a really simple form of communication in order to promote (or demote) the role of a bus using a series of labels defined by our own. And also to perform bidding, which will be explained in the next section.
+
+\subsection{group decisions}
+Adding new buses entails a lot of costs. It would be a shame if buses are empty and yet new buses are added. This is possible due to the division into four areas. To correct for this situation, we created a system of collaboration between cooridinators.
+\newline
+Local coordinators keep track of all the buses that move in that specific area. In addition, the local coordinator compares the amount of people waiting in its area with the capability of the buses, deciding whether or not a new bus is needed (i.e., the capability is smaller than the amount of people waiting). If this is the case, it asks for help to the local coordinators of different areas. Consequently, the other local coordinators check if in their area there are buses that can fit the request (i.e., that are not coordinators) and send the results to the requester. Once the original bus receives a message containing the \texttt{ID} of a bus that can help it, it sends a message to that bus and to its coordinator to make it change schedule of the available bus. In this way, local coordinators from different areas can make the group decision of exchanging buses between them, in order to better distribute the buses during the simulation.
+\newline
+The decision of whether to create or not a new bus is still centralized to a specific bus (i.e., the one with the \textit{coordinator role}) based on the global amount of people and capability. However, combining this form of communication and coordination we will be able to implement also a form of group decision in which the \textit{local coordinators} are the one deciding if a new bus in their area is needed by asking to the other responsible buses if they can lend one or more vehicles. In our opinion, this is going to reduce significantly the costs associated to the creation of new buses.
+
+\subsection{negotiation}
+To ensure that the amount of people waiting gets reduced as much as possible when adding new buses, we inserted a form of bidding for newly added buses. When the global coordinator performs the check for the four areas altogether, it creates new buses based on this global check if necessary. This is when the bidding happens. When a global coordinator creates a new bus, it sends a message of type ``\textit{bid-request}'' to the other local coordinators. They check the number of people waiting at the bus station in their area, and send this number as a bid to the global coordinator. The global coordinator checks which bid is the highest, i.e. which local coordinator is in most need of a new bus. It assigns the new bus to the area of the local coordinator with the highest bid. 
+\newline
+When a new bus is created, it has to wait until it gets a message that specifies the area in which the bus should go. This message is sent by the global coordinator: after having chosen the winner of the auction, the global coordinator sends a message to the newly created bus with the schedule that it has to follow.
+
+\section{Refactored code}
+For clarity and readability, the code is refactored. The agents.nls file is splitted into 5 files. The agents.nls code describes the core BSI framework, linked to action execution. Then there is an init file, that states how the first buses are created and initialised. The execute-intentions file describes the action functions needed for each intention. The messages file incorporates some utility functions to work with the messages. Finally we have a utils file that contains all the functions needed by the rest of the application. 
+
+\section{Performance}
+\todo[inline]{Whatevers done to increase performance}
+
+
+
+\newpage
+\onecolumn
+\bibliographystyle{ieeetr}
+\bibliography{bib}
+
+\end{document}
