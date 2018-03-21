@@ -37,8 +37,8 @@ to init-local-vars
   ; Coordinator specific
   if bus_id = coordinator [
     ; Set the types of the initial local coordinators and scouts
-    set initial_local_coordinator_type 1
-    set initial_scout_type 1
+    set initial_local_coordinator_type 3
+    set initial_scout_type 3
     ; Initialize support variables
     set last_created_bus 24
     set last_created_bus_tick ticks
