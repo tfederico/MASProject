@@ -230,23 +230,9 @@ to-report create-buses-from-diff [ diff ]
       set d (diff - get-capacity-from-type 2) 
     ][
       wrap-add-bus 1
-      set d (diff - get-capacity-from-type 1)  
+      set d (diff - get-capacity-from-type 1) 
     ]
   ]
-;  ifelse diff > 300 [
-;    wrap-add-bus 3  
-;    set d (diff - get-capacity-from-type 3) 
-;  ][
-;    ifelse diff > 200 [
-;      wrap-add-bus 2
-;      set d (diff - get-capacity-from-type 2) 
-;    ][
-;      if diff > 50 [
-;        wrap-add-bus 1
-;        set d (diff - get-capacity-from-type 1) 
-;      ]  
-;    ]
-;  ]
   report d
 end
 

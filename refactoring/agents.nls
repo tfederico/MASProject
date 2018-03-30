@@ -121,9 +121,9 @@ to add-current-stop-intention
   ; When the bus arrives to a stop, drop the passengers that are in the destination
   set intentions lput "drop-passengers" intentions
   ; The bus checks whether it can have a break or not
-  set intentions lput "check-stop" intentions
+  ;set intentions lput "check-stop" intentions
   ; The bus check whether it can start again after the break
-  set intentions lput "check-restart" intentions
+  ;set intentions lput "check-restart" intentions
   ; The bus picks the passengers of the bus stop
   set intentions lput "pick-passengers" intentions 
   ; If the bus is the coordinator, it checks for danger situations
