@@ -57,19 +57,18 @@ end
 
 ; Check whether the bus can stop or not in order to save money
 to execute-check-stop
-;  if should-move = false [
-;    set running false
-;  ]
+  if should-move = false [
+    set running false
+  ]
   set intentions butfirst intentions
 end
 
 ; Check wheter the bus has to restart after stopping
 to execute-check-restart
-;  if should-move = true [
-;   set running true
-;   set intentions butfirst intentions
-;  ]
+  if should-move = true [
+   set running true
    set intentions butfirst intentions
+  ]
 end
 
 
@@ -169,7 +168,7 @@ to execute-reallocate-bus
   let pass get-people-waiting-in-my-area
   let pass_direction get-people-waiting-in-my-direction
   
-  while [ cap < pass and not empty? received_allocables ] [
+  while [not empty? received_allocables ][ ;and cap < pass ] [
     let allocable (item 0 received_allocables)
     set received_allocables butfirst received_allocables
     set cap (cap + get-capacity-from-type (item 1 allocable))
@@ -206,7 +205,8 @@ to execute-change-schedule
     set beliefs schedule
     set engaged false
     foreach bus_passengers [ bp ->
-      drop-off-passenger (item 0 bp)]
+      drop-off-passenger (item 0 bp)
+    ]
     set intentions butfirst intentions
     
   ] [
