@@ -26,13 +26,22 @@ to init-local-vars
   set scouts [28 29 30 31 ]
   ; At the beginning, the bus does not have a schedule and it is not moving
   set running false
+  set engaged false
+  set new_schedule_id -1
   ; Local cooordinators-specific vars 
   if member? bus_id local_coordinators [
     ; keeps track of the local buses in its area
     set local_buses []
-    set local_buses lput bus_id local_buses
+    let lc []
+    set lc lput bus_id lc
+    set lc lput bus_type lc
+    set local_buses lput lc local_buses
     ; the last help sent, when a coordinator is created, is 0 because it does not have sent an help yet
     set last_help_sent 0
+    set engaged true
+    
+    set received_help_requests []
+    set received_allocables []
   ]
   ; Coordinator specific
   if bus_id = coordinator [

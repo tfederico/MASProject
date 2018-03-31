@@ -1,5 +1,5 @@
 ; Execute the action get-schedule: the agent needs to retrieve its schedule
-to execute-get-schedule 
+to execute-get-schedule
   ifelse is-at-least-role "coordinator" [
    ; If the agent is the coordinator, it gets the first schedule
    set beliefs (get-schedule-from-id 0)
@@ -57,18 +57,19 @@ end
 
 ; Check whether the bus can stop or not in order to save money
 to execute-check-stop
-  if should-move = false [
-    set running false
-  ]
+;  if should-move = false [
+;    set running false
+;  ]
   set intentions butfirst intentions
 end
 
 ; Check wheter the bus has to restart after stopping
 to execute-check-restart
-  if should-move = true [
-   set running true
+;  if should-move = true [
+;   set running true
+;   set intentions butfirst intentions
+;  ]
    set intentions butfirst intentions
-  ] 
 end
 
 
@@ -90,6 +91,17 @@ end
 
 ; Checks the number of people waiting compared to the number of buses: if the buses are not enough, call new buses
 to execute-check-amount-people
+  if is-at-least-role "local coordinator" [
+    let people get-people-waiting-in-my-area
+    let capacity get-local-capacity
+    if capacity < people [
+      foreach local_coordinators [ lc -> 
+        if bus_id != lc [
+          send-message lc (word "help-request " (people - capacity)) 
+        ]
+      ]
+    ]
+  ]
   ; Only the coordinator can create new buses
   if is-at-least-role "coordinator" [
     ; Compute the difference between the number of passengers waiting and the capacity of the fleet, as a danger measure
@@ -132,4 +144,77 @@ end
 to execute-assign-new-buses
   assign-buses
   set intentions butfirst intentions
+end
+
+; Evaluate if we can offer help
+to execute-evaluate-help
+  foreach received_help_requests [ hr ->
+    let loc_capacity get-local-capacity
+    let p get-people-waiting-in-my-area
+    if loc_capacity - p > 0 [
+      foreach local_buses [ lb ->
+       if not member? (item 0 lb) local_coordinators and get-capacity-from-type (item 1 lb) >= (item 1 hr) [ 
+          send-message (item 0 lb) (word "empty-check " (item 0 hr))
+       ]
+      ]
+    ] 
+  ]
+  set received_help_requests []
+  set intentions butfirst intentions
+end
+
+; Calling buses to reach my area
+to execute-reallocate-bus
+  let cap get-local-capacity
+  let pass get-people-waiting-in-my-area
+  let pass_direction get-people-waiting-in-my-direction
+  
+  while [ cap < pass and not empty? received_allocables ] [
+    let allocable (item 0 received_allocables)
+    set received_allocables butfirst received_allocables
+    set cap (cap + get-capacity-from-type (item 1 allocable))
+    
+    let lb []
+    set lb lput (item 0 allocable) lb
+    set lb lput (item 1 allocable) lb
+    set local_buses lput lb local_buses
+    
+    ; Decide the direction
+    let direction 0
+    if pass_direction < pass / 2 [ set direction 1 ]
+    let sched_id (bus_id + direction * 4)
+    send-message (item 0 allocable) (word "reallocated " sched_id)
+  ]
+  ; Disengaging the buses which are not used
+  foreach received_allocables [ ra ->
+    send-message (item 0 ra) "disengage "
+  ]
+  set received_allocables []
+  set intentions butfirst intentions
+end
+
+to execute-change-schedule
+  let schedule []
+  if new_schedule_id != -1 [set schedule (get-schedule-from-id (get-schedule-id-from-local-coordinator-id new_schedule_id))]
+  let joints get-joints beliefs schedule
+  ifelse (member? current_stop joints) and schedule != [] [
+    while [current_stop != item 0 schedule][
+     let s (item 0 schedule)
+     set schedule butfirst schedule
+     set schedule lput s schedule 
+    ]
+    set beliefs schedule
+    set engaged false
+    foreach bus_passengers [ bp ->
+      drop-off-passenger (item 0 bp)]
+    set intentions butfirst intentions
+    
+  ] [
+   set intentions butfirst intentions
+   ; When the bus arrives to a stop, drop the passengers that are in the destination
+   set intentions lput "drop-passengers" intentions 
+   ; Add the intention of going to the next stop
+   set intentions lput (item 0 beliefs) intentions
+   set intentions lput "change-schedule" intentions
+  ]
 end
