@@ -1,17 +1,17 @@
 \section{Conceptual description and strategy}
-
-This section explains the various agent concepts used, how they are designed and implemented, and along which strategies. Four types of costs shape our strategies, the amount of money spend, the average waiting time, the amount of messages send, and the amount of people waiting. Costs arise by traveling and buying more buses. To reduce costs, the buses need to transport travelers efficiently. The more passengers they can transport in the shortest amount of time, the lower the costs will be.
+\label{sec:conceptual}
+This section explains the various agent concepts used, how they are designed and implemented, and along which strategies. Four types of costs shape our strategies, the amount of money spend, the average waiting time, the amount of messages sent, and the amount of people waiting. Costs arise by traveling and buying more buses. To reduce costs, the buses need to transport travelers efficiently. The more passengers they can transport in the shortest amount of time, the lower the costs will be.
 
 \subsection{Transportation and Coordination}
-Buses are allowed to travel according to a specific route. This route describes the connections between different bus stops. In the following paragraphs, we will focus on how we chose the different schedules and how the buses are traveling through them.
+Buses are allowed to travel according to a specific schedule. This schedule describes the connections between different bus stops. In the following paragraphs, we will focus on how we chose the different schedules and how the buses are traveling through them.
  
 \paragraph{Different fixed schedules}
 
-In order to reduce the amount of time a passenger spends in a bus, the map is split into four different areas. They can be classified under the labels "West", "North", "Center" and "East". Thus, each area defines the set of bus stops composing a schedule.
+In order to reduce the amount of time a passenger spends in a bus, the map is split into four different \textit{areas}. They can be classified under the labels "West", "North", "Center" and "East". Thus, \textit{each area defines a set of bus stops}, and each bus is assigned to a specific area.
 
 Splitting the bus stops has two advantageous effects. A bus focuses only in its specific area: thus, it has to complete a shorter distance before passing the same stop again, so waiting time will be reduced. The time that a traveler spends in the bus will be shorter, which will reduce chances of buses being full and unable to pick up other travelers.
 
-This solution does occasionally require transferring passengers from one area to another. This reduces the advantageous effects. Transfer passengers will have to wait at two bus stops before reaching their destination. To enable transportation of people between bus stops in different schedules, we defined the concept of \textit{joint position}. A \textit{joint position} is a bus stop that is shared between different areas. Thus, if \textit{bus stop 4} is shared between \textit{area 1} and \textit{area 2}, we say that \textit{bus stop 4} is a \textit{joint position}  between \textit{area 1} and \textit{2}. Stop 3 (\texttt{Centraal}), is a shared stop for all four areas. As a result, when a passenger that needs to change area in order to reach his destination is picked up, the bus will consider as the passenger destination the nearest \textit{joint position} with the desired area: the agent will bring the passenger there and it will drop it; then, an agent from the destination area will picked up the passenger from the \textit{joint position} and it will bring the passenger to his real destination. In order to avoid useless movements of passenger, we define some conditions to pick up a passenger from a bus stop:
+This solution does occasionally require transferring passengers from one area to another. This reduces the advantageous effects. To discuss about transportation of people between bus stops in different schedules, we define the concept of \textit{joint position}. A \textit{joint position} is a bus stop that is shared between different areas. Thus, if \textit{bus stop 4} is shared between \textit{area 1} and \textit{area 2}, we say that \textit{bus stop 4} is a \textit{joint position}  between \textit{area 1} and \textit{2}. Stop 3 (\texttt{Centraal}), is a shared stop for all four areas. As a result, when a passenger that needs to change area is picked up, the bus will consider the nearest \textit{joint position} with the desired area as the passenger destination: the agent will bring the passenger there and it will drop it; then, an agent from the destination area will picked up the passenger from the \textit{joint position} and it will bring the passenger to his real destination. In order to avoid useless movements of passenger, we define some conditions to pick up a passenger from a bus stop:
 
 \begin{enumerate}
 \item the passenger destination is in the bus area, \textbf{or}
@@ -20,7 +20,7 @@ This solution does occasionally require transferring passengers from one area to
 
 \paragraph{Direction-based pick up}
 
-Within an area, we define two different schedules. The first one is a route through all the bus stops of the area, the second one is the reverse of the first one. Thus, we can have bus traveling in the same area but following two different directions. Thus, we improved the traveling time by moving passengers along the direction that is faster in order to reach the destination. This adds a new condition to check whether a bus should pick from a stop to the ones listed in the previous paragraph: the passenger has to be picked up only if it is faster to move the passenger to the destination (or to the \textit{joint position}) using the bus schedule, compared to the opposite one. If this condition does not hold, the passenger will not be picked up, and he will wait for another bus that is traveling with the opposite schedule. This increases transportation efficiency, since buses carry passengers for a shorter amount of time and are thus able to carry more passengers. 
+Within an area, we define two different schedules. The first one is a route through all the bus stops of the area, the second one is the reverse of the first one. Thus, we can have bus traveling in the same area but following two different directions. Thus, we improved the traveling time by moving passengers along the direction that is faster in order to reach the destination. This adds a new condition to check whether a bus should pick a passenger to the ones listed in the previous paragraph: the passenger has to be picked up only if it is faster to move the passenger to the destination (or to the \textit{joint position}) using the bus schedule, compared to the opposite one. If this condition does not hold, the passenger will not be picked up, and he will wait for another bus that is traveling with the opposite schedule. This increases transportation efficiency, since buses carry passengers for a shorter amount of time and are thus able to carry more passengers. 
 
 The number of buses assigned to areas and schedules is distributed based on the needs of that specific schedule, as we will explain later. In this way, schedule with higher need of buses will be provided with new buses.
 
@@ -31,6 +31,8 @@ To ensure that the buses cooperate efficiently, they are assigned specific roles
 
 Roles can also define the \textit{behaviour} of a bus. Using roles makes it easy to change the behaviour of a bus.
 
+The roles define also the creation time of a bus. At the beginning of the simulation, there is only one bus, with id 24. However, as soon as it is able to create new buses, the bus 24 will create other 7 initial buses (3 local coordinators and 4 scouts, as we will explain in the next paragraphs).
+
 \paragraph{Global coordinator}
 
 A major responsibility is buying new buses, in case of shortage. If all buses would be able to, this would happen inefficiently and increase costs unnecessarily. Therefore only the first created bus with \texttt{ID = 24} is assigned this responsibility. This bus is on top of the hierarchy, and its role is defined as \textit{global coordinator}. 
@@ -39,7 +41,7 @@ The \textit{global coordinator} adds buses based on shortage. Shortage is define
 
 \paragraph{Local coordinators}
 
-One step down in the hierarchy, are the \textit{local coordinators}. They are each responsible for one of the four areas in Amsterdam. Note that the \textit{global coordinator} is also a \textbf{local coordinator}. The \textit{global coordinator} is assigned to the "Centre", whereas the buses with \texttt{ID = 25, 26 and 27} are responsible for "West", "East" and "North" respectively. The local coordinators keep track of their area, by listing the buses assigned to their area, their fleet capacity and the number of people waiting. When a new bus is created, all the local coordinators compete between each other to assign the new bus in their area, as described in Section \ref{subsec:negotiations}.
+One step down in the hierarchy, are the \textit{local coordinators}. They are each responsible for one of the four areas in Amsterdam. Note that the \textit{global coordinator} is also a \textbf{local coordinator}. The \textit{global coordinator} is assigned to the "Centre", whereas the buses with \texttt{ID = 25, 26 and 27} are responsible for "West", "East" and "North" respectively. All of them are created at the beginning of the simulation by the global coordinator. The local coordinators keep track of their area, by listing the buses assigned to their area, their fleet capacity and the number of people waiting. When a new bus is created, all the local coordinators compete between each other to assign the new bus in their area, as described in Section \ref{subsec:negotiations}.
 
 \paragraph{Scouts}
 
