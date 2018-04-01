@@ -12,12 +12,12 @@ to execute-get-schedule
     ; Read the id of the schedule from the message
     let sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
     ; Set the schedule to the beliefs
-    set beliefs (get-schedule-from-id sched_id)  
-   ]  
+    set beliefs (get-schedule-from-id sched_id)
+   ]
   ]
   ; If we managed to obtain a schedule, remove the intention of getting a schedule
-  if not empty? beliefs [  
-    set intentions butfirst intentions 
+  if not empty? beliefs [
+    set intentions butfirst intentions
     ; Setting running to true means that the bus has to move. When the bus will stop, it will set running to false
     set running true
   ]
@@ -81,7 +81,7 @@ to execute-pick-passengers
     ; If the bus has some available spots
     ; If, considering the destination of the passenger, it is convenient to pick him up following the current direction of the bus
     ; Pick up the passenger
-     pick-up-passenger (item 0 passenger) 
+     pick-up-passenger (item 0 passenger)
     ]
   ]
   ; Remove the intention from the list
@@ -94,9 +94,9 @@ to execute-check-amount-people
     let people get-people-waiting-in-my-area
     let capacity get-local-capacity
     if capacity < people [
-      foreach local_coordinators [ lc -> 
+      foreach local_coordinators [ lc ->
         if bus_id != lc [
-          send-message lc (word "help-request " (people - capacity)) 
+          send-message lc (word "help-request " (people - capacity))
         ]
       ]
     ]
@@ -107,8 +107,8 @@ to execute-check-amount-people
     let diff (amount_passengers_waiting - total_capacity)
     let d diff
     ; While we do not have enough buses to manage the danger situation, create new buses
-    while [ diff > 0] [ 
-      set diff (create-buses-from-diff diff) 
+    while [ diff > 0] [
+      set diff (create-buses-from-diff diff)
     ]
     ; If I have created new buses, send a bid request
     if d != diff [ send-bid-requests ]
@@ -119,7 +119,7 @@ end
 ; Travel to the next stop
 to execute-travel
   let intention (item 0 intentions)
-  ifelse current_stop = intention [ 
+  ifelse current_stop = intention [
     set intentions butfirst intentions
   ] [
     travel-to intention
@@ -152,11 +152,11 @@ to execute-evaluate-help
     let p get-people-waiting-in-my-area
     if loc_capacity - p > 0 [
       foreach local_buses [ lb ->
-       if not member? (item 0 lb) local_coordinators and get-capacity-from-type (item 1 lb) >= (item 1 hr) [ 
+       if not member? (item 0 lb) local_coordinators [ 
           send-message (item 0 lb) (word "empty-check " (item 0 hr))
        ]
       ]
-    ] 
+    ]
   ]
   set received_help_requests []
   set intentions butfirst intentions
@@ -167,17 +167,17 @@ to execute-reallocate-bus
   let cap get-local-capacity
   let pass get-people-waiting-in-my-area
   let pass_direction get-people-waiting-in-my-direction
-  
+
   while [not empty? received_allocables ][ ;and cap < pass ] [
     let allocable (item 0 received_allocables)
     set received_allocables butfirst received_allocables
     set cap (cap + get-capacity-from-type (item 1 allocable))
-    
+
     let lb []
     set lb lput (item 0 allocable) lb
     set lb lput (item 1 allocable) lb
     set local_buses lput lb local_buses
-    
+
     ; Decide the direction
     let direction 0
     if pass_direction < pass / 2 [ set direction 1 ]
@@ -200,7 +200,7 @@ to execute-change-schedule
     while [current_stop != item 0 schedule][
      let s (item 0 schedule)
      set schedule butfirst schedule
-     set schedule lput s schedule 
+     set schedule lput s schedule
     ]
     set beliefs schedule
     set engaged false
@@ -208,11 +208,11 @@ to execute-change-schedule
       drop-off-passenger (item 0 bp)
     ]
     set intentions butfirst intentions
-    
+
   ] [
    set intentions butfirst intentions
    ; When the bus arrives to a stop, drop the passengers that are in the destination
-   set intentions lput "drop-passengers" intentions 
+   set intentions lput "drop-passengers" intentions
    ; Add the intention of going to the next stop
    set intentions lput (item 0 beliefs) intentions
    set intentions lput "change-schedule" intentions
