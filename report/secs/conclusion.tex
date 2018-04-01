@@ -1,3 +1,10 @@
-\subsection{Conclusion}
+\section{Discussion and conclusion}
+In this project, we implemented a multi-agents system composed out of a set of buses that interact between each others in order to move passengers around the city of Amsterdam. 
 
-From the results can be concluded that the number of passengers and the waiting time significantly decreased for each data set that is tested. The costs and the amount of messages did increase.
+Each bus behaviour is managed by its knowledge of the environment (belief), its goals (intentions) and its responsibility within the fleet (role). Each bus travels in a specific area of the map, that is associated with a set of bus stops. Furthemore, within the same area buses can move along two different directions, based on the assigned schedule. This helps to achieve an intelligent and efficient management of passengers. 
+
+When the waiting passengers increase, new buses are created. The local coordinators of each area negotiate between each others to obtain the new buses for their area. However, in danger situations, local coordinators from different areas can help each others by exchanging bus from area to area.
+
+This solution showed improvements in the average travelling time, while generally it is difficult to manage the number of passengers waiting at the end of the simulation and to further reduce the expenses. Probably, a solution that is not based on fixed schedule but that moves the buses based on the position of the passengers could led to improved results. However, such solution could be difficult to extend and to interpret, whereas a schedule-based solution is particularly easy to improve with new ideas and new behaviours. 
+
+As future works, we are planning to perform a detailed study of the behaviour of our system, in order to understand which are the situations where our solution is not working adequately. This study could highlight problems in the conceptual model that we design, and could help to greatly increase the performance of our solution.
