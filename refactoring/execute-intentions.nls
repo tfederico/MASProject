@@ -1,5 +1,5 @@
 ; Execute the action get-schedule: the agent needs to retrieve its schedule
-to execute-get-schedule 
+to execute-get-schedule
   ifelse is-at-least-role "coordinator" [
    ; If the agent is the coordinator, it gets the first schedule
    set beliefs (get-schedule-from-id 0)
@@ -12,12 +12,12 @@ to execute-get-schedule
     ; Read the id of the schedule from the message
     let sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
     ; Set the schedule to the beliefs
-    set beliefs (get-schedule-from-id sched_id)  
-   ]  
+    set beliefs (get-schedule-from-id sched_id)
+   ]
   ]
   ; If we managed to obtain a schedule, remove the intention of getting a schedule
-  if not empty? beliefs [  
-    set intentions butfirst intentions 
+  if not empty? beliefs [
+    set intentions butfirst intentions
     ; Setting running to true means that the bus has to move. When the bus will stop, it will set running to false
     set running true
   ]
@@ -57,18 +57,18 @@ end
 
 ; Check whether the bus can stop or not in order to save money
 to execute-check-stop
-;  if should-move = false [
-;    set running false
-;  ]
+  if should-move = false [
+    set running false
+  ]
   set intentions butfirst intentions
 end
 
 ; Check wheter the bus has to restart after stopping
 to execute-check-restart
-  ;if should-move = true [
-  ; set running true
+  if should-move = true [
+   set running true
    set intentions butfirst intentions
-  ;] 
+  ]
 end
 
 
@@ -81,7 +81,7 @@ to execute-pick-passengers
     ; If the bus has some available spots
     ; If, considering the destination of the passenger, it is convenient to pick him up following the current direction of the bus
     ; Pick up the passenger
-     pick-up-passenger (item 0 passenger) 
+     pick-up-passenger (item 0 passenger)
     ]
   ]
   ; Remove the intention from the list
@@ -90,14 +90,25 @@ end
 
 ; Checks the number of people waiting compared to the number of buses: if the buses are not enough, call new buses
 to execute-check-amount-people
+  if is-at-least-role "local coordinator" [
+    let people get-people-waiting-in-my-area
+    let capacity get-local-capacity
+    if capacity < people [
+      foreach local_coordinators [ lc ->
+        if bus_id != lc [
+          send-message lc (word "help-request " (people - capacity))
+        ]
+      ]
+    ]
+  ]
   ; Only the coordinator can create new buses
   if is-at-least-role "coordinator" [
     ; Compute the difference between the number of passengers waiting and the capacity of the fleet, as a danger measure
     let diff (amount_passengers_waiting - total_capacity)
     let d diff
     ; While we do not have enough buses to manage the danger situation, create new buses
-    while [ diff > 0] [ 
-      set diff (create-buses-from-diff diff) 
+    while [ diff > 0] [
+      set diff (create-buses-from-diff diff)
     ]
     ; If I have created new buses, send a bid request
     if d != diff [ send-bid-requests ]
@@ -108,7 +119,7 @@ end
 ; Travel to the next stop
 to execute-travel
   let intention (item 0 intentions)
-  ifelse current_stop = intention [ 
+  ifelse current_stop = intention [
     set intentions butfirst intentions
   ] [
     travel-to intention
@@ -132,4 +143,78 @@ end
 to execute-assign-new-buses
   assign-buses
   set intentions butfirst intentions
+end
+
+; Evaluate if we can offer help
+to execute-evaluate-help
+  foreach received_help_requests [ hr ->
+    let loc_capacity get-local-capacity
+    let p get-people-waiting-in-my-area
+    if loc_capacity - p > 0 [
+      foreach local_buses [ lb ->
+       if not member? (item 0 lb) local_coordinators [ 
+          send-message (item 0 lb) (word "empty-check " (item 0 hr))
+       ]
+      ]
+    ]
+  ]
+  set received_help_requests []
+  set intentions butfirst intentions
+end
+
+; Calling buses to reach my area
+to execute-reallocate-bus
+  let cap get-local-capacity
+  let pass get-people-waiting-in-my-area
+  let pass_direction get-people-waiting-in-my-direction
+
+  while [not empty? received_allocables and cap < pass ] [
+    let allocable (item 0 received_allocables)
+    set received_allocables butfirst received_allocables
+    set cap (cap + get-capacity-from-type (item 1 allocable))
+
+    let lb []
+    set lb lput (item 0 allocable) lb
+    set lb lput (item 1 allocable) lb
+    set local_buses lput lb local_buses
+
+    ; Decide the direction
+    let direction 0
+    if pass_direction < pass / 2 [ set direction 1 ]
+    let sched_id (bus_id + direction * 4)
+    send-message (item 0 allocable) (word "reallocated " sched_id)
+  ]
+  ; Disengaging the buses which are not used
+  foreach received_allocables [ ra ->
+    send-message (item 0 ra) "disengage "
+  ]
+  set received_allocables []
+  set intentions butfirst intentions
+end
+
+to execute-change-schedule
+  let schedule []
+  if new_schedule_id != -1 [set schedule (get-schedule-from-id (get-schedule-id-from-local-coordinator-id new_schedule_id))]
+  let joints get-joints beliefs schedule
+  ifelse (member? current_stop joints) and schedule != [] [
+    while [current_stop != item 0 schedule][
+     let s (item 0 schedule)
+     set schedule butfirst schedule
+     set schedule lput s schedule
+    ]
+    set beliefs schedule
+    set engaged false
+    foreach bus_passengers [ bp ->
+      drop-off-passenger (item 0 bp)
+    ]
+    set intentions butfirst intentions
+
+  ] [
+   set intentions butfirst intentions
+   ; When the bus arrives to a stop, drop the passengers that are in the destination
+   set intentions lput "drop-passengers" intentions
+   ; Add the intention of going to the next stop
+   set intentions lput (item 0 beliefs) intentions
+   set intentions lput "change-schedule" intentions
+  ]
 end

@@ -57,7 +57,7 @@ end
 
 ; Return the schedule of id sched_id
 to-report get-schedule-from-id [ sched_id ]
-  let s (item (sched_id mod (length schedules)) schedules)
+  let s (item sched_id schedules)
   ; Add the stop 3 at the end. The original schedule are not comprehensive of the starting point central station
   set s lput 3 s
   report s
@@ -230,23 +230,9 @@ to-report create-buses-from-diff [ diff ]
       set d (diff - get-capacity-from-type 2) 
     ][
       wrap-add-bus 1
-      set d (diff - get-capacity-from-type 1)  
+      set d (diff - get-capacity-from-type 1) 
     ]
   ]
-;  ifelse diff > 300 [
-;    wrap-add-bus 3  
-;    set d (diff - get-capacity-from-type 3) 
-;  ][
-;    ifelse diff > 200 [
-;      wrap-add-bus 2
-;      set d (diff - get-capacity-from-type 2) 
-;    ][
-;      if diff > 50 [
-;        wrap-add-bus 1
-;        set d (diff - get-capacity-from-type 1) 
-;      ]  
-;    ]
-;  ]
   report d
 end
 
@@ -362,6 +348,10 @@ to assign-buses
     let max_bid_pos_id (item 0 (item max_bid_pos bids))
     let sched (get-schedule-id-from-local-coordinator-id max_bid_pos_id) + ((max_bid_pos mod 2) * length local_coordinators)
     send-message (item 0 (item pos bus_to_allocate)) (word "schedule " sched)
+    let alloc_bus []
+    set alloc_bus lput (item 0 (item pos bus_to_allocate)) alloc_bus
+    set alloc_bus lput bus_t alloc_bus
+    send-message max_bid_pos_id (word "bid-accepted " alloc_bus)
     set bus_to_allocate (remove (item pos bus_to_allocate) bus_to_allocate)
     let new_elem []
     set new_elem lput (item 0 (item max_bid_pos bids)) new_elem
@@ -374,6 +364,11 @@ end
 ; Return the schedule id based on the id of the local coordinator
 to-report get-schedule-id-from-local-coordinator-id [id]
   report (id mod (length local_coordinators))
+end
+
+to-report get-local-coordinator-id-from-schedule-id [id]
+  let i (id mod (length local_coordinators))
+  report 24 + i
 end
 
 ; Return TRUE if the bus should move, False otherwise, based on the stop conditions
@@ -396,4 +391,12 @@ to-report should-move
   ]
   
   report should_move
+end
+
+to-report get-local-capacity
+  let c 0
+  foreach local_buses [ lc -> 
+    set c (c + get-capacity-from-type (item 1 lc))
+  ]
+  report c
 end
