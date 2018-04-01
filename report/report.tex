@@ -122,8 +122,7 @@ For clarity and readability, the code is divided in different files:
 \item the file utils implements all the utility functions used by the other files.
 \end{itemize} 
 
-\section{Performance}
-\label{sec:tuning}
+\section{Tuning}
 The agent logic consists of a set of parameters that have been tuned for performance purposes. We tried different combinations of these parameters in the training set and in the two test sets, in order to find the best parameter setting. In particular, these parameters are:
 
 \begin{itemize}
@@ -133,10 +132,33 @@ The agent logic consists of a set of parameters that have been tuned for perform
 \item \textbf{threshold for the bus types}: when the shortage is higher than the previous threshold, new buses will be created. The type of the newly created buses is determined by how much high is the shortage. Thus, we have three tresholds for the three bus types respectively; we set the threshold for creating a red bus to 60, the threshold for creating a yellow bus to 12 and the threshold for creating a blue bus to 0. This means that we create the cheapest bus that can ``manage'' the shortage situation. 
 \end{itemize}
 
-See table 1.
+\section{Performance}
+
+To establish the performance of the final code, a comparison is made to a baseline code. In the baseline code, buses only travel, pick up and drop off passengers, and create new buses. Table \ref{table:table1} shows that there is a significant decrease in the travel time and the amount of people waiting. In the final code, more buses are added which explains the increase in bus expenses. Also, the number of messages is increased, to enable cooperation between buses. 
+
+\begin{table*}
+\begin{tabular}{ |c|c|c|  }
+ \hline
+ \multicolumn{4}{|l|}{Table 1. Performance results} \\
+ \hline
+  Measurement & Baseline & Final Code \\
+ \hline
+  Avg travel time & 150 & 52 \\
+  Buses' expenses & 1039682 & 5298614 \\
+  Messages sent & 0 & 275  \\
+  Final amount waiting & 232 & 25 \\
+  Avg travel time remaining & 100 & 39 \\
+  Final avg travel time & 156 & 54 \\
+ \hline
+\label{table:table1}
+\end{tabular}
+\end{table*}
+
+
+From figure \ref{fig:pass_waiting} can be gathered that there is a peek in the number of passengers waiting during the morning rush hours. This peek lowers, when more buses are added. Thanks to the enlarged bus fleet, a much smaller peek is seen during the second rush hour in the evening.
+
 See figure \ref{fig:expense}
 see figure \ref{fig:messages}
-See figure \ref{fig:pass_waiting}
 See figure \ref{fig:avg_tt}
 
 \begin{figure}
@@ -165,14 +187,15 @@ See figure \ref{fig:avg_tt}
 
 \section{Performance on test data}
 
-See Table 1.
+Table 2 shows.
+
 
 \begin{table*}
-\begin{tabular}{ |c|c|c|c|  }
+\begin{tabular}{ |c|c|c|  }
  \hline
  \multicolumn{4}{|l|}{Table 1. Performance results} \\
  \hline
-  Measurement & Data set 1 & Data set 2 & Data set 3 \\
+  Measurement & Test Data set 2 & Test Data set 3 \\
  \hline
   Avg travel time & 0 & 0 & 0\\
   Buses' expenses & 0 & 0 & 0\\
@@ -181,11 +204,14 @@ See Table 1.
   Avg travel time remaining & 0 & 0 & 0\\
   Final avg travel time & 0 & 0 & 0\\
  \hline
+ \label{table:table2}
 \end{tabular}
 \end{table*}
 
+
+
 \subsection{Conclusion}
-From the results can be concluded that...
+From the results can be concluded that the number of passengers and the waiting time significantly decreased for each data set that is tested. The costs and the amount of messages did increase.
 
 \section{Discussion}
 Some implementations that could have led to better performance of the system are the following.
