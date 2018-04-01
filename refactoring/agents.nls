@@ -1,0 +1,225 @@
+__includes ["init.nls" "execute-intentions.nls" "utils.nls" "messages.nls"]
+
+buses-own [
+  ; Static, read-only variables. These values never change. You can read them, but you cannot change them.
+  bus_id          ; The ID of a given agent (bus). Each agent has a unique ID.
+  bus_type        ; The type of a given agent (bus). 1 means "small", 2 means "medium" and 3 means "large".
+
+  ; Dynamic, read-only variables. These values may change over time. You can read them, but you cannot change them.
+  inbox           ; List containing all the incoming messages (a given message is a list like this [tick sender message]).
+  bus_passengers  ; List containing all the passengers that the agent (bus) is currently carrying (represented as a list like this [passenger_id bus_stop]).
+  previous_stop   ; ID of the last bus stop that the agent (bus) visited (-1 means that the agent has not visited any bus stop yet).
+  current_stop    ; ID of the bus stop where the agent (bus) currently is (-1 means that the agent is not at any bus stop).
+  next_stop       ; ID of the bus stop the agent (bus) is traveling to (-1 means that the agent is not travelling to any bus stop).
+
+  ; New local variables for students.
+  ; You can create any new local variable you want. Just declare them here.
+  message_headers ; list of headers of messages, according to the ontology "messageType message"
+  local_coordinators ; list of local coordinators at the beginning of the simulation, every bus known which are the coordinators
+  coordinator ; The id of the coordinator at the beginning of the simulation
+  scouts ; list of scouts at the beginning of the simulation
+  local_buses ; The list of local buses to an area. Each coordinator keeps track of the buses in its area
+  intentions ; list of intentions of the agent
+  beliefs ; schedule of the agent
+  role ; each agent can have one or more roles, that define its behaviour
+  running ; true if the bus is running, false if it is waiting
+  initial_local_coordinator_type ; initial bus type of the local coordinators
+  initial_scout_type ; initial bus type of the scouts
+  last_created_bus ; id of the last created bus. This variable is used only by the coordinator
+  last_created_bus_tick ; tick of the last time in which the coordinator created a bus. Only the coordinator uses this var
+  total_capacity ; total capacity of the fleet. This is used only by the coordinator
+  last_inbox_check ; Last time in which the agent checked its inbox
+  bid_list ; List of bid by the local coordinators. Only the coordinator keeps track of this list. [ [local_coordinator bid] ...]
+  bus_to_allocate ; List of buses in the form [[bus_id bus_type] ...] that represents a set of buses that have to be allocated to a schedule
+  received_help_requests ; List of received help requests in the form [[bus_id quantity] ...]
+  received_allocables ; List of received help responses in the form [[bus_id bus_type] ...]
+  engaged
+  new_schedule_id
+  ; SCHEDULES
+  schedules
+]
+
+globals [graph]
+
+to init-buses
+  ; Initialize your agents here.
+  ; Initialize local variables
+  init-local-vars
+end
+
+; Add decision making strategies for your agents here.
+; You are allowed to use the global variable 'ticks'.
+to execute-actions
+  ; The first buses cannot be created in the init-buses by design. The coordinator should create the local coordinators and the scouts now
+  if ticks = 2 and (is-at-least-role "coordinator") [
+    create-first-buses
+  ]
+
+  ; Update the beliefs (schedule)
+  update-beliefs
+  ; Update the intentions
+  update-intentions
+  ; Execute intentions, if any
+  if not empty? intentions [ execute-intentions ]
+end
+
+to update-beliefs
+  if not empty? beliefs [
+   ; if we reached the first stop of the beliefs, slide it, in order to have the next stop as the first element of the beliefs
+    if current_stop = item 0 beliefs [
+      slide-beliefs
+    ]
+  ]
+end
+
+to update-intentions
+  ; If we do not have any beliefs (schedule), the agent need a new schedule
+  ifelse empty? beliefs and not member? "get-schedule" intentions [
+    set intentions lput "get-schedule" intentions
+  ][
+   ; Read the messages and modify the intentions according to them
+   let new_msgs get-new-messages
+   foreach new_msgs [ msg ->
+     ;show msg
+     let m (item 2 msg)
+     let header (extract-header m)
+
+     ; If the message is a bid (only the coordinator can receive a bid message), it means that the msg is an answer to the bid-request message of the coordinator
+     if header = "bid" [
+      let bid extract-message m
+      set bid read-from-string bid
+      ; Update the list of bids with the new bid
+      update-bid-list bid (item 1 msg)
+      ; Add the intentions of assign the new buses to the different areas, based on the bids of the local coordinators of the areas
+      if not member? "assign-new-buses" intentions [ set intentions fput "assign-new-buses" intentions ]
+
+     ]
+
+     ; If the message is a bid-request, it means that the coordinator is trying to assign new buses to the different areas: thus,
+     ; it sends a bid-request in order to get the bids from the different local coordinators
+     if header = "bid-request" [
+       ; Add the intention of preparing a bid and send it to the coordinator
+       set intentions fput "bid" intentions
+     ]
+
+     if header = "bid-accepted" [
+       let alloc_bus extract-message m
+       set alloc_bus read-from-string alloc_bus
+       set local_buses lput alloc_bus local_buses
+     ]
+
+     if header = "help-request" [
+       let help_r extract-message m
+       set help_r read-from-string help_r
+       let hr []
+       set hr lput (item 1 msg) hr
+       set hr lput help_r hr
+       set received_help_requests lput hr received_help_requests
+       if not member? "evaluate-help" intentions [set intentions fput "evaluate-help" intentions]
+     ]
+
+     if header = "empty-check" [
+       if empty? bus_passengers and not engaged [
+         let requester extract-message m
+         set requester read-from-string requester
+         set engaged true
+         let b []
+         set b lput bus_id b
+         set b lput bus_type b
+         send-message requester (word "reallocable " b)
+         if not member? "change-schedule" intentions [set intentions lput "change-schedule" intentions]
+       ]
+     ]
+
+     if header = "reallocable" [
+       let allocable extract-message m
+       set allocable read-from-string allocable
+       set received_allocables lput allocable received_allocables
+       if not member? "reallocate-bus" intentions [set intentions fput "reallocate-bus" intentions]
+     ]
+
+     if header = "disengage" [
+       set engaged false
+        if member? "change-schedule" intentions [set intentions remove "change-schedule" intentions]
+     ]
+
+     if header = "reallocated" [
+       
+       let sched_id -1
+       ifelse new_schedule_id = -1 [
+        let msgs (get-msgs-with-header-id (inbox) 0)
+        ; Read the id of the schedule from the message
+        set sched_id read-from-string (extract-message (item 2 (item 0 msgs)))
+       ][
+         set sched_id new_schedule_id
+       ]
+       
+       send-message (get-local-coordinator-id-from-schedule-id sched_id) "bye-bye "
+       
+       let new_sched extract-message m
+       set new_sched read-from-string new_sched
+       set new_schedule_id new_sched
+       
+       
+     ]
+      
+     if header = "bye-bye" [
+       set local_buses remove (item 1 msg) local_buses       
+     ]
+   ]
+
+   ; If the agent is the coordinator, send a message to the local coordinators and to the scouts with the schedule that they should follow.
+   ; This intention is performed at the beginning, when the initial local coordinators and scouts are created
+   if is-at-least-role "coordinator" and ticks = 3 [
+     set intentions lput "send-initial-schedules" intentions
+     ; After the above intention, the buses are ready to start. Thus, the coordinator can add the intentions of mananging the first bus stop of his schedule
+     add-current-stop-intention
+   ]
+
+   if empty? intentions [
+    ; We have no intentions. We start by managing the passengers of the current bus stop and by checking the amount of people (only the coordinator)
+    ; We prepare the intentions for the next stop
+    add-current-stop-intention
+   ]
+  ]
+end
+
+; Add the intention related to being in a bus stop
+to add-current-stop-intention
+  ; When the bus arrives to a stop, drop the passengers that are in the destination
+  set intentions lput "drop-passengers" intentions
+  ; The bus checks whether it can have a break or not
+  ;set intentions lput "check-stop" intentions
+  ; The bus check whether it can start again after the break
+  ;set intentions lput "check-restart" intentions
+  ; The bus picks the passengers of the bus stop
+  set intentions lput "pick-passengers" intentions
+  ; If the bus is the coordinator, it checks for danger situations
+  if is-at-least-role "coordinator" [ set intentions lput "check-amount-people" intentions ]
+  ; Add the intention of going to the next stop
+  set intentions lput (item 0 beliefs) intentions
+end
+
+to execute-intentions
+  let int_len (length intentions)
+  let prev_int_len 100000
+  while [ not empty? intentions and int_len < prev_int_len] [
+   let intention (item 0 intentions)
+   if intention = "get-schedule" [ execute-get-schedule ]
+   if intention = "bid" [ execute-bid ]
+   if intention = "evaluate-help" [ execute-evaluate-help ]
+   if intention = "reallocate-bus" [ execute-reallocate-bus ]
+   if intention = "change-schedule" [ execute-change-schedule ]
+   if intention = "assign-new-buses" [ execute-assign-new-buses ]
+   if intention = "send-initial-schedules" [ execute-send-initial-schedules ]
+   if intention = "drop-passengers" [ execute-drop-passengers ]
+   if intention = "check-stop" [ execute-check-stop ]
+   if intention = "check-restart" [ execute-check-restart ]
+   if intention = "pick-passengers" [ execute-pick-passengers ]
+   if intention = "check-amount-people" [ execute-check-amount-people ]
+   if is-number? intention [ execute-travel ]
+
+   set prev_int_len int_len
+   set int_len (length intentions)
+  ]
+end
