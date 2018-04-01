@@ -1,0 +1,10 @@
+\section{Tuning}
+
+The agent logic consists of a set of parameters that have been tuned for performance purposes. We tried different combinations of these parameters in the training set and in the two test sets, in order to find the best parameter setting. In particular, these parameters are:
+
+\begin{itemize}
+\item \textbf{stop}: whether we allow the bus to stop or not, as explained in Section \ref{sec:stop}; the tuning showed better results when we do not allow the buses to stop
+\item \textbf{initial bus type}: the type of the buses created at the beginning of the simulation (the scout buses); we set this parameter to 3, i.e., the firstly created buses are red
+\item \textbf{threshold for creating a new bus}: as we described in Section \ref{subsec:roles}, the global coordinator creates a new bus based on the shortage, i.e., the difference between the number of people waiting and the fleet capacity. The shortage is compared with this threshold: when the shortage is higher, new buses will be created; we set this parameter to 0, i.e., as soon as we have a shortage, we need to create new buses
+\item \textbf{threshold for the bus types}: when the shortage is higher than the previous threshold, new buses will be created. The type of the newly created buses is determined by how much high is the shortage. Thus, we have three thresholds for the three bus types respectively; we set the threshold for creating a red bus to 60, the threshold for creating a yellow bus to 12 and the threshold for creating a blue bus to 0. This means that we create the cheapest bus that can ``manage'' the shortage situation. 
+\end{itemize}

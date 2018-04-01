@@ -1,0 +1,5 @@
+\section{Discussion}
+
+Some implementations that could have led to better performance of the system are the following.
+
+The amount of occupied spots in each bus is local information, that can only be made known to other buses through communication. This information could have been used to make a more accurate estimation of the amount of buses needed for the travelers. Since the current system is very sensitive to adding new buses, the information did not seem valuable. To reduce the amount of messages send, this information is not communicated.

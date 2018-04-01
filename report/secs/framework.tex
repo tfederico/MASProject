@@ -1,0 +1,19 @@
+\section{Framework}
+
+We chose to organise our system using a Belief-Intention architecture, similar to the BDI one~\cite{caillou2017simple}. In fact, every agent has a set of intentions, i.e.,  a set of tasks that it wants to achieve. Based on the state of the environment in a specific time (stored in the Beliefs and in some agent local variable), the agent choose the best intention to accomplish for that specific time. Intentions are future directed and trigger certain actions~\cite{multiagentsystems}. This framework facilitates flexibility in generating actions, because an agent can switch between intentions depending on the state of the environment. 
+
+The bus interests are shared between the fleet: every bus wants to minimize the costs, the average travelling time of the passengers and the number of messages sent. However, there are some cases in which the agents compete between each others to obtain a resource, as we will describe later.
+
+The cooperation and competition behaviour are generally achieved through communication: different agents can send messages to each others. A message is formalized through the use of an ontology, for which the string of the message is splitted in a \textit{message type} and in a \textit{message content}, as follow:
+
+\begin{verbatim}
+"message_type message_content"
+\end{verbatim}
+
+For example, it is possible to ask to a bus to drive according to a specific schedule by sending it the following message:
+
+\begin{verbatim}
+"schedule 2"
+\end{verbatim}
+
+where 2 is the ID of the schedule.

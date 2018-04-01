@@ -1,0 +1,87 @@
+\section{Conceptual description and strategy}
+
+This section explains the various agent concepts used, how they are designed and implemented, and along which strategies. Four types of costs shape our strategies, the amount of money spend, the average waiting time, the amount of messages send, and the amount of people waiting. Costs arise by traveling and buying more buses. To reduce costs, the buses need to transport travelers efficiently. The more passengers they can transport in the shortest amount of time, the lower the costs will be.
+
+\subsection{Transportation and Coordination}
+Buses are allowed to travel according to a specific route. This route describes the connections between different bus stops. In the following paragraphs, we will focus on how we chose the different schedules and how the buses are traveling through them.
+ 
+\paragraph{Different fixed schedules}
+
+In order to reduce the amount of time a passenger spends in a bus, the map is split into four different areas. They can be classified under the labels "West", "North", "Center" and "East". Thus, each area defines the set of bus stops composing a schedule.
+
+Splitting the bus stops has two advantageous effects. A bus focuses only in its specific area: thus, it has to complete a shorter distance before passing the same stop again, so waiting time will be reduced. The time that a traveler spends in the bus will be shorter, which will reduce chances of buses being full and unable to pick up other travelers.
+
+This solution does occasionally require transferring passengers from one area to another. This reduces the advantageous effects. Transfer passengers will have to wait at two bus stops before reaching their destination. To enable transportation of people between bus stops in different schedules, we defined the concept of \textit{joint position}. A \textit{joint position} is a bus stop that is shared between different areas. Thus, if \textit{bus stop 4} is shared between \textit{area 1} and \textit{area 2}, we say that \textit{bus stop 4} is a \textit{joint position}  between \textit{area 1} and \textit{2}. Stop 3 (\texttt{Centraal}), is a shared stop for all four areas. As a result, when a passenger that needs to change area in order to reach his destination is picked up, the bus will consider as the passenger destination the nearest \textit{joint position} with the desired area: the agent will bring the passenger there and it will drop it; then, an agent from the destination area will picked up the passenger from the \textit{joint position} and it will bring the passenger to his real destination. In order to avoid useless movements of passenger, we define some conditions to pick up a passenger from a bus stop:
+
+\begin{enumerate}
+\item the passenger destination is in the bus area, \textbf{or}
+\item the passenger destination is not in the bus area \textbf{and} the passenger is not already in a \textit{joint position} with the destination area.
+\end{enumerate}
+
+\paragraph{Direction-based pick up}
+
+Within an area, we define two different schedules. The first one is a route through all the bus stops of the area, the second one is the reverse of the first one. Thus, we can have bus traveling in the same area but following two different directions. Thus, we improved the traveling time by moving passengers along the direction that is faster in order to reach the destination. This adds a new condition to check whether a bus should pick from a stop to the ones listed in the previous paragraph: the passenger has to be picked up only if it is faster to move the passenger to the destination (or to the \textit{joint position}) using the bus schedule, compared to the opposite one. If this condition does not hold, the passenger will not be picked up, and he will wait for another bus that is traveling with the opposite schedule. This increases transportation efficiency, since buses carry passengers for a shorter amount of time and are thus able to carry more passengers. 
+
+The number of buses assigned to areas and schedules is distributed based on the needs of that specific schedule, as we will explain later. In this way, schedule with higher need of buses will be provided with new buses.
+
+\subsection{Roles}
+\label{subsec:roles}
+
+To ensure that the buses cooperate efficiently, they are assigned specific roles. Roles differ in their ancillary responsibilities and so a hierarchy of buses was created. 
+
+Roles can also define the \textit{behaviour} of a bus. Using roles makes it easy to change the behaviour of a bus.
+
+\paragraph{Global coordinator}
+
+A major responsibility is buying new buses, in case of shortage. If all buses would be able to, this would happen inefficiently and increase costs unnecessarily. Therefore only the first created bus with \texttt{ID = 24} is assigned this responsibility. This bus is on top of the hierarchy, and its role is defined as \textit{global coordinator}. 
+
+The \textit{global coordinator} adds buses based on shortage. Shortage is defined as the difference between the total number of people waiting, and the total bus fleet capacity. The cheapest bus type that is able to manage the amount of waiting people, is added. Thus, when a shortage is experienced, the global coordinator will create new buses: as we will explain in the following, the newly created buses will be items of auctions in order to assign the bus to a specific schedule.
+
+\paragraph{Local coordinators}
+
+One step down in the hierarchy, are the \textit{local coordinators}. They are each responsible for one of the four areas in Amsterdam. Note that the \textit{global coordinator} is also a \textbf{local coordinator}. The \textit{global coordinator} is assigned to the "Centre", whereas the buses with \texttt{ID = 25, 26 and 27} are responsible for "West", "East" and "North" respectively. The local coordinators keep track of their area, by listing the buses assigned to their area, their fleet capacity and the number of people waiting. When a new bus is created, all the local coordinators compete between each other to assign the new bus in their area, as described in Section \ref{subsec:negotiations}.
+
+\paragraph{Scouts}
+
+Less important than the local coordinators are the \textit{scouts}. Note that the global coordinator and the local coordinators are also scout. The scouts are created at the beginning of the simulation: each schedule will have one scout. Their aim is to ensure that a bus in a specific schedule always exists. They do not have specific responsibility, but the semantic of the role specifies that they can not be moved from their schedule. 
+
+\paragraph{Simple}
+
+Finally, at the bottom of the hierarchy we have the simple buses. Every bus is also a simple bus. However, the bus created after the beginning of the simulation are \textbf{only} simple. This means that they do not have specific things to do, but they only have to pick, move and drop passengers. 
+
+\subsection{Communication}
+
+As stated before, to enable social interaction between agents with conflicting or agreeable goals, a form of communication is implemented. This communication happens through the exchange of messages. A bus sends a message with a specific goal, and the receiver performs actions based on the content.
+
+\paragraph{Ontology}
+
+To take into account the possibility of messages with different purpose, we defined the following ontology for communication: \texttt{"message\_type content"}. Where  \texttt{message\_type} is the header of the message, or the performative \cite{fipa}. This is a string that describes the goal of the message. Then \texttt{content} contains the effective content of the message. We implemented this ontology, so that buses know how to use the content of the message for, based on the performative. The perfomatives of the messages can be promoting, assigning, requesting help, offering help, accepting help, requesting a bid, bidding and reallocating. 
+
+The reception of the messages goes as following. At every tick a bus checks its incoming messages. It can retrieve the new messages from the inbox history. To check whether a message is new, its tick is compared to the last tick at which the agent checked its inbox. This last tick is represented by a \textit{locally stored variable}. The performative of the message, implies how to interpret the content. Based on the content the bus could changes its intentions: for example, when a local coordinator gets a message of type ``\textit{bid-request}'', the new intention of performing the bid will be added.
+
+\subsection{Group decisions}
+
+The division of the route into four areas can lead to certain scenarios that involve unnecessary costs. Steps are taken to deal with a situation, where one area has a shortage of buses whereas the other area has a remnant. 
+
+Local coordinators keep track of all the buses that move in their area. In addition, they compare the amount of people waiting in their area with the fleet capacity. Based on this comparison, they decide whether they need more buses. If this is the case, they collaborate with the other coordinators. 
+
+This collaboration is done by sending a message to the other coordinators. The message has performative \textit{request help} and the content is a number; the shortage of fleet capacity. The other coordinators check if they have remnant buses, and if so send a message with performative \textit{offer help} and the content is the id of the bus that is remnant. Upon receiving this offer, the coordinator adds this bus to its bus fleet. A reply is send with performative \textit{accept help} and again as content the id of the offered bus. The other coordinator removes the bus from its bus fleet. The offered bus receives a message with performative \textit{reallocate} and the content contains the bus id of its new coordinator. Based on this new coordinator, the bus retrieves its new schedule. As soon as it reaches the transfer stop, it changes area. In this way, local coordinators from different areas can exchange buses between them. Thus, buses are distributed more efficiently and costs associated to the creation of new buses are reduced.
+
+\subsection{Negotiation}
+\label{subsec:negotiations}
+
+The local coordinators compete between each others in order to obtain the newly created buses for their area.
+
+When the global coordinator creates a new bus, it also sends a message ``\textit{bid-request}'' to every local coordinator, that will start the auction for the new bus. Every local coordinator will then send a message ``\textit{bid}'' to the local coordinator specifying the need of the two schedules in its area. The need for a specific schedule is computed counting the number of passengers in the area that should be picked up by a bus following the schedule (remember that based on the schedule, the direction of the bus changes, and passengers will be picked up based on the traveling direction). After receiving the bids from the local coordinators, the global coordinator will choose the schedule for which the need is higher, and it will specify to the newly created bus that it should drive using that schedule, sending it a message of type ``\textit{schedule}'' containing the ID of the schedule.
+
+\subsection{Stopping buses}
+\label{sec:stop}
+
+We allow a bus to stop when some conditions are met. In this way, we can reduce the traveling costs when possible. In particular, a bus can stop when:
+
+\begin{itemize}
+\item the bus is empty \textbf{and}
+\item there are no passengers waiting in its schedule; here, we consider the number of passengers waiting in the bus stops composing the schedule of the bus that have to be picked up (considering the direction of the bus).
+\end{itemize}
+
+However, as we will describe in Section \ref{sec:tuning}, not allowing the bus to stop brings to better results. Thus, we deactivated this feature.
