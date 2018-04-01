@@ -1,7 +1,5 @@
 \section{Performance}
-To establish the performance of the final code, a comparison is made to a baseline code. In the baseline code, buses only travel, pick up and drop off passengers, and create new buses, while in the final code all the improvements described in Section \ref{sec:conceptual} are implemented.
-
-Table \ref{table:table1} shows that there is a significant decrease in the travel time and the amount of people waiting. In the final code, more buses are added which explains the increase in bus expenses. Also, the number of messages is increased, to enable cooperation between buses. 
+To establish the performance of the final code, a comparison is made to a baseline code in Table \ref{table:table1}, using the first day data. The baseline code, that is our first version of the solution, buses only travel, pick up passengers and drop off them. In the final version, all the improvements explained in Section \ref{sec:conceptual} are implemented.
 
 \begin{table*}[htbp]
 \centering
@@ -20,6 +18,10 @@ Table \ref{table:table1} shows that there is a significant decrease in the trave
 \label{table:table1}
 \caption{Performance results}
 \end{table*}
+
+Table \ref{table:table1} shows that there is a significant decrease in the average travelling times and in the expenses. Obviously, the number of messages increase (using the first version, no message was sent). However, the number of people waiting at the end of the simulation slightly increases in the new version.
+
+This result highlight the advantages of an intelligent coordination and competion between buses compared to a system of buses that does not exploit these concepts.
 
 From figure \ref{fig:pass_waiting} can be gathered that there is a peek in the number of passengers waiting during the morning rush hours. This peek lowers, when more buses are added. Thanks to the enlarged bus fleet, a smaller peek is seen during the second rush hour in the evening.
 
