@@ -9,26 +9,26 @@ to init-local-vars
   set schedules lput (reverse [ 16 11 1 7 17 5 4 ]) schedules
   set schedules lput (reverse [ 9 8 2 8 6 8 9 ]) schedules
   set schedules lput (reverse [ 4 10 13 23 14 23 19 1 7 17 5 4 ]) schedules
-  set schedules lput (reverse [ 20 12 15 18 15 0 22 21 20 ]) schedules 
-  
-  
+  set schedules lput (reverse [ 20 12 15 18 15 0 22 21 20 ]) schedules
+
+
   ; Initialize the message headers
   set message_headers ["schedule" "role" "assigned" "help-request" "help-answer" "help-accepted" "reallocated" "bid-request"]
-  
+
   ; Initialize last inbox check
   set last_inbox_check 0
-  
+
   ; Initialize the list of coordinators
   set local_coordinators [ 24 25 26 27 ]
   ; Initialize the super coordinator
   set coordinator 24
   ; Initialize the list of scouts
-  set scouts [28 29 30 31 ]
+  set scouts [28 29 30 31]
   ; At the beginning, the bus does not have a schedule and it is not moving
   set running false
   set engaged false
   set new_schedule_id -1
-  ; Local cooordinators-specific vars 
+  ; Local cooordinators-specific vars
   if member? bus_id local_coordinators [
     ; keeps track of the local buses in its area
     set local_buses []
@@ -36,10 +36,9 @@ to init-local-vars
     set lc lput bus_id lc
     set lc lput bus_type lc
     set local_buses lput lc local_buses
-    ; the last help sent, when a coordinator is created, is 0 because it does not have sent an help yet
-    set last_help_sent 0
-    set engaged true
     
+    set engaged true
+
     set received_help_requests []
     set received_allocables []
   ]
@@ -51,11 +50,11 @@ to init-local-vars
     ; Initialize support variables
     set last_created_bus 24
     set last_created_bus_tick ticks
-    set total_capacity (get-capacity-from-type bus_type) 
+    set total_capacity (get-capacity-from-type bus_type)
     set bid_list []
     set bus_to_allocate []
   ]
-  
+
   ; initialize the intentions
   init-intentions
   ; initialize the beliefs
@@ -80,7 +79,7 @@ end
 to init-roles
   ifelse (not member? bus_id scouts) and (not member? bus_id local_coordinators) and (bus_id != coordinator) [
    ; The bus is simple, assign it as a role
-   set role "simple" 
+   set role "simple"
   ] [
    ; the bus is not simple
    ifelse member? bus_id scouts [
@@ -89,12 +88,12 @@ to init-roles
     ][
      ifelse bus_id = coordinator [
        ; the bus is the coordinator
-       set role "coordinator" 
+       set role "coordinator"
       ][
        ; the bus is a local coordinator
-       set role "local coordinator" 
+       set role "local coordinator"
       ]
-    ] 
+    ]
   ]
 end
 
@@ -105,5 +104,5 @@ to create-first-buses
     if coordinator != lc [ wrap-add-bus initial_local_coordinator_type ]
   ]
   ; Create the scouts
-  foreach scouts [ s -> wrap-add-bus initial_scout_type ]  
+  foreach scouts [ s -> wrap-add-bus initial_scout_type ]
 end

@@ -366,6 +366,11 @@ to-report get-schedule-id-from-local-coordinator-id [id]
   report (id mod (length local_coordinators))
 end
 
+to-report get-local-coordinator-id-from-schedule-id [id]
+  let i (id mod (length local_coordinators))
+  report 24 + i
+end
+
 ; Return TRUE if the bus should move, False otherwise, based on the stop conditions
 to-report should-move
   ; 1) Every kind of bus (i.e., every role) stops if there are no more people waiting in its area and the bus is empty

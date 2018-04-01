@@ -168,7 +168,7 @@ to execute-reallocate-bus
   let pass get-people-waiting-in-my-area
   let pass_direction get-people-waiting-in-my-direction
 
-  while [not empty? received_allocables ][ ;and cap < pass ] [
+  while [not empty? received_allocables and cap < pass ] [
     let allocable (item 0 received_allocables)
     set received_allocables butfirst received_allocables
     set cap (cap + get-capacity-from-type (item 1 allocable))
