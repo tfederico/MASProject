@@ -1,7 +1,7 @@
 \section{Performance}
 \subsection{Improvements}
 
-To establish the performance of the final code, we made a comparison in Table \ref{table:table1}, using the first day data as a baseline. In the baseline code, that is our solution developed for the first assignment, buses only travel around all bus stops, pick up passengers and drop off them. In the final version, we implemented all the improvements explained in Section \ref{sec:conceptual}.
+To establish the performance of the final code, we compare the results to a baseline code. This baseline code is our solution developed for the first assignment. Buses travel according to one fixed schedule, picking up and dropping off passengers. In the final code, we implemented all the improvements explained in Section \ref{sec:conceptual}. Table \ref{table:table1} shows the comparison between the baseline code and the final code.
 
 \begin{table*}[htbp]
 \centering
@@ -9,27 +9,27 @@ To establish the performance of the final code, we made a comparison in Table \r
  \hline
   Measurement & Baseline & Final Code \\
  \hline
-  Avg travel time & 150 & 72.53 \\
+  Avg travel time & 150.01 & 72.53 \\
   Buses' expenses & 1039682 & 711251 \\
   Messages sent & 0 & 285  \\
-  Final amount waiting & 232 & 255 \\
-  Avg travel time remaining & 100 & 78.12 \\
-  Final avg travel time & 156 & 75.48 \\
+  Final amount waiting & 232 & 25 \\
+  Avg travel time remaining & 100.25 & 78.12 \\
+  Final avg travel time & 156.34 & 75.48 \\
  \hline
 \end{tabular}
 \label{table:table1}
 \caption{Performance results}
 \end{table*}
 
-Table \ref{table:table1} shows that there is a significant decrease in the average traveling times and costs. Obviously, the number of messages increase because during the first version no message was sent. However, the number of people waiting at the end of the simulation slightly increases in the newer version.
+Table \ref{table:table1} shows that there is a significant decrease of the costs. Not only does the travelling time and the amount of people waiting go down, the financial costs also lower. Solely the number of messages increase, because no communication system was implemented in the baseline version. 
 
-This result highlights the advantages of an intelligent coordination and competition between buses compared to a system of buses that does not exploit these concepts.
+These results highlights the advantages of an intelligent coordination and competition between buses. Because of transportation efficiency, travel time and passengers waiting are reduced, without increasing financial costs.
 
 \subsection{Performance on test data}
 
-For this project, we have three different data set, corresponding to three different days. We used day 1 to improve our solution, while day 4 and 5 as tests for our proposal. In this section, we show the results of our solution in the three different data sets.
+Three data sets (\textit{day 1}, \textit{day 2} and \textit{day 4}) are available for testing our transportation system. Each data set contains data for a time span of 24 hours. Each 15 minutes, for each bus stop, the amount of travelers arriving and their destination is displayed. The day 1 data set is used to create our solution, whereas day 4 and day 5 are to test the proposal. In this section, we show the results of our solution for the three different data sets.
 
-The final value of the different metrics for the dataset of Day 1 are shown in the right column of Table \ref{table:table1}, whereas the plots for the expenses, the messages, the number of people waiting and the travelling time are shown in Figure \ref{fig:expense}, \ref{fig:messages}, \ref{fig:pass_waiting} and \ref{fig:avg_tt} respectively.
+The final values of the different metrics for day 1, are shown in the right column of Table \ref{table:table1}. Figure \ref{fig:expense} shows the plot of the expenses, figure \ref{fig:messages} the messages send, figure \ref{fig:pass_waiting} the passengers waiting and figure \ref{fig:avg_tt} the travel time.
 
 \begin{figure}[htbp]
 \centering
@@ -59,31 +59,32 @@ The final value of the different metrics for the dataset of Day 1 are shown in t
 \end{minipage}
 \end{figure}
 
-Using the dataset of Day 1, we can see that there are two peeks in which the number of people suddenly appear in the map, and in which the fleet have to deal with this situation. It is important to note that during the first peek, our solution creates a number of buses that is probably enough to deal with the second peek (we can see a sudden increase in the bus expenses when there is the first peek, followed by a constant increase of the expenses for the rest of the simulation).
+Day 1 has two rush hours, in the morning and in the evening. The figures show how our solution deals with these rush hourse. First there is a peek in the number of people waiting, followed by a peek in expenses. This is due to the new buses added to manage the rush hour. During the second rush hour, the peek of people waiting is much smaller. Because the fleet is larger, the tranportation system can efficiently deal with the rush hour.
 
-We are now going to focus on the results using the test sets, namely Day 4 and Day 5. In Table \ref{table:table2}, the metrics value on the two test sets are shown.
+To measure performance, we check if the system is capable of handling different scenarios. The results of running the system on the training data, is compared to the results for the test data sets. Table \ref{table:table2} shows the results available for comparison.
 
 \begin{table*}[htbp]
 \centering
 \begin{tabular}{ |c|c|c|  }
  \hline
-  Measurement & Test Data set 2 & Test Data set 3 \\
+  Measurement & Traning Data (Day 1) & Test Data (Day 3) & Test Data (Day 4) \\
  \hline
-  Avg travelling time & 92.36 & 86.72 \\
-  Buses' expenses & 2393732 & 2346943.5 \\
-  Messages sent & 950 & 992 \\
-  Final amount waiting & 2603 & 2513 \\
-  Avg travel time remaining & 182.97 & 206.91 \\
-  Final avg travel time & 101.42 & 95.97 \\
+  Avg travelling time & 72.53 & 92.36 & 86.72 \\
+  Buses' expenses & 711251 & 2393732 & 2346943.5 \\
+  Messages sent & 285 & 950 & 992 \\
+  Final amount waiting & 25 & 2603 & 2513 \\
+  Avg travel time remaining & 78.12 & 182.97 & 206.91 \\
+  Final avg travel time & 75.48 & 101.42 & 95.97 \\
  \hline
 \end{tabular}
 \label{table:table2}
 \caption{Performance results}
 \end{table*}
+\begin{table*}[htbp]
 
-Our solution experienced a lot more difficulties in managing the situations of the test set. While the average travelling time is slighlty increased, compared to the one on the training set, we can notice a strong increase in the expenses and in the final amount of passengers waiting. 
+The system does not perform as well on the test data, as on the training data. The average travelling time only rises a little. But the expenses and the amount of messages are tripled, because much more new buses are added. Even though the fleet was larger, the amount of people waiting in the end is larger. 
 
-The plots using Day 4 for the expenses, the messages, the number of people waiting and the travelling time are shown in Figure \ref{fig:expense4}, \ref{fig:messages4}, \ref{fig:pass_waiting4} and \ref{fig:avg_tt4} respectively.
+The plots using day 4 for the expenses, the messages, the number of people waiting and the travelling time are shown in Figure \ref{fig:expense4}, \ref{fig:messages4}, \ref{fig:pass_waiting4} and \ref{fig:avg_tt4} respectively. Figure \ref{fig:pass_waiting4} shows that the amount of people travelling on day 4 is much larger than on day 1. Therefore, the final amount of people waiting on day 4 is larger, even though the bus fleet is larger. It also shows that the rush hour is not properly managed. The amount of people waiting does not go down fast enough. This can be explained by the threshold that is set for adding new buses. If this threshold is smaller, new buses are added quicker. This will enable the system to deal with rush hour faster. 
 
 \begin{figure}[htbp]
 \centering
