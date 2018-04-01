@@ -1,8 +1,0 @@
-All'inizio, abbiamo una intention "get-schedule" per gestire l'assegnazione dela schedule al bus. Dopo averla assegnata, dobbiamo mandare il msg al coordinatore per dire che siamo nella sua area.
-
-La capacità totale la conosce solo il coordinatore.
-
-Mettere nell'update beliefs il cambio di schedule
-
-
-
